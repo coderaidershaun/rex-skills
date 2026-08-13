@@ -40,13 +40,11 @@ These three are loaded by EVERY coding subagent, every time, no exceptions:
 | Skill                      | Path                                                                            | Purpose                                                                   | Relevant when                                                         |
 | -------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | rex-grill-me               | `.claude/skills/rex-grill-me/SKILL.md`                                          | Relentlessly interview the user about a plan until shared understanding.  | User wants their plan stress-tested. Not part of the coding pipeline. |
-| rex-utils-caveman          | `.claude/skills/rex-utils-caveman/SKILL.md`                                     | Ultra-compressed communication mode (~75% fewer tokens).                  | User asks for caveman mode / brevity. Never changes code style.       |
-| rex-utils-mermaid-diagrams | `.claude/skills/rex-utils-mermaid-diagrams/SKILL.md` (+ README.md, references/) | Author Mermaid diagrams: class, sequence, flowchart, ERD, C4, state, etc. | Task asks for diagrams or architecture documentation.                 |
+| rex-caveman          | `.claude/skills/rex-caveman/SKILL.md`                                     | Ultra-compressed communication mode (~75% fewer tokens).                  | User asks for caveman mode / brevity. Never changes code style.       |
+| rex-mermaid-diagrams | `.claude/skills/rex-mermaid-diagrams/SKILL.md` (+ README.md, references/) | Author Mermaid diagrams: class, sequence, flowchart, ERD, C4, state, etc. | Task asks for diagrams or architecture documentation.                 |
 
 ## Orchestration
 
 | Skill         | Path                                    | Purpose                                                                                                                                                                                                           |
 | ------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | rex-code-lead | `.claude/skills/rex-code-lead/SKILL.md` | Team-lead playbook: plan (tmp dir) → advisor sense-check → engineer → auditor → cleaner. Takes a coding task from planned to written to audited to polished. The lead consults THIS index to equip each subagent. |
-
-The `lesson-*` skills sharing this folder belong to the math-me lesson pipeline and are not part of the coding skill set above.

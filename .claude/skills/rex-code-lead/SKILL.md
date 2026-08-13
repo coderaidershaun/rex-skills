@@ -1,6 +1,6 @@
 ---
 name: rex-code-lead
-description: Team-lead playbook for producing the best possible code. Lead plans to a tmp dir, an advisor subagent sense-checks the plan, then three subagents run in strict order — software engineer (TDD, fully skilled), auditor (checks work, hunts code smells), cleaner (final rex-code-smells sweep at opus, removes leftover scratch unit tests, rewrites comments into plain English, never touches smell/hazard flags). Every stage has a tick-box checklist and a lead gate. Use when user says "lead the coding", "run the code pipeline", "best possible code", "engineer and auditor", "team lead", or a non-trivial implementation task deserves plan → write → audit → polish treatment.
+description: Team-lead playbook for producing the best possible code. Lead plans to a tmp dir, an advisor subagent sense-checks the plan, then three subagents run in strict order — software engineer (TDD, fully skilled), auditor (checks work, hunts code smells), cleaner (final rex-code-smells sweep at opus, fixes what the sweep finds, removes leftover scratch unit tests, rewrites comments into plain English, never touches smell/hazard flags). Every stage has a tick-box checklist and a lead gate. Use when user says "lead the coding", "run the code pipeline", "best possible code", "engineer and auditor", "team lead", or a non-trivial implementation task deserves plan → write → audit → polish treatment.
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -17,7 +17,7 @@ task
   -> [0b] Advisor              — sense-checks the plan, APPROVE or REVISE
   -> [1]  Software Engineer    — writes it, TDD
   -> [2]  Auditor              — rex-code-smells sweep, fixes what it can, flags the rest
-  -> [3]  Cleaner              — final rex-code-smells sweep at opus, then polish. Flags only, no fixes
+  -> [3]  Cleaner              — final rex-code-smells sweep at opus, fixes what it finds, then polish
   -> final gate -> report
 ```
 
@@ -42,6 +42,7 @@ Copy this into the tmp dir as `checklist.md` at Stage 0 and keep it ticked as yo
 [ ] 2   LEAD GATE — nothing fundamental; fundamental -> back to Stage 1
 [ ] 3   Cleaner dispatched (FRESH subagent, opus) with rex-code-smells + rex-code-commenting
 [ ] 3   Final rex-code-smells sweep run at opus over every changed file
+[ ] 3   Sweep findings fixed (behavior-preserving); unfixable flagged with permanent SMELL comments
 [ ] 3   Scratch unit tests removed; fitness/contract/integration untouched
 [ ] 3   Comments rewritten to plain English; smell/hazard/SAFETY flags all intact
 [ ] 3   LEAD GATE — zero behavior change, zero deleted flags
@@ -170,7 +171,7 @@ Lead gate: fundamental problems (wrong approach, missing requirement, broken des
 [ ] Build + tests green
 ```
 
-## Stage 3 — Cleaner (final polish + final smell sweep, zero behavior change)
+## Stage 3 — Cleaner (final smell sweep + fixes + polish, zero behavior change)
 
 Dispatch a FRESH subagent (model: `opus` — this stage is opus even if the lead is running smaller) with the brief + prior reports + these skills:
 
@@ -181,20 +182,20 @@ Must-haves (updated `rex-code-commenting` is the centerpiece), plus:
 
 Cleaner instructions:
 - **Run the `rex-code-smells` sweep one last time** over every changed file, after the cleanup edits. The auditor swept mid-flight; this one sweeps the code that actually ships, including anything the audit fixes introduced. All three lenses plus the mechanical block.
-- **The cleaner does NOT fix smells.** Detection only at this stage — no renames, no extractions, no signature changes. Anything the sweep surfaces gets a permanent plain-English `SMELL:` comment and goes in the report. A BLOCK-severity finding goes to the lead immediately.
+- **Fix what the sweep finds.** Fixes must be behavior-preserving — renames, extractions, and signature tidy-ups are allowed when a finding calls for them, feature changes are not. Build + full test suite green after each fix. A finding that cannot be fixed behavior-preservingly gets a permanent plain-English `SMELL:` comment and goes in the report. A BLOCK-severity finding goes to the lead immediately — the cleaner does not redesign its way out of a fundamental problem.
 - **Remove leftover scratch unit tests** — inline `#[cfg(test)]` TDD scaffolds whose behavior is covered by contract/integration/fitness tests, per the removal criteria in `rex-code-tests-unit-testing`. NEVER touch `tests/fitness/`, `tests/integration/`, `tests/contract/`. A scaffold asserting something no durable test covers -> keep it and say so in the report.
 - **Rewrite comments to short plain English.** Full grammatical sentences a newcomer understands first time. Delete WHAT-comments, stale comments, commented-out code, AI noise, plan and task references, pointers to other files, and jargon — per `rex-code-commenting`.
 - **NEVER delete code-smell, warning, hazard, or `SAFETY:` comments.** ALWAYS included. Tighten wording only. This is the hardest rule in this stage.
-- Zero behavior change. No refactors, no renames, no "improvements". Cleanup only.
+- Zero behavior change. Smell fixes stay behavior-preserving; beyond them, no "improvements" — cleanup only.
 - Build after every file touched. Full test suite green at the end.
-- Report back: the final smell table, tests removed (and why safe), tests kept (and why), comments rewritten/deleted, flags preserved.
+- Report back: the final smell table, what was fixed, what was flagged unfixable, tests removed (and why safe), tests kept (and why), comments rewritten/deleted, flags preserved.
 
 Lead gate: any behavior change or deleted flag -> reject, redispatch to restore. A BLOCK finding in the final sweep -> back to Stage 1 with that finding; the cleaner never fixes it itself.
 
 ```
 [ ] Fresh subagent, model opus
 [ ] Final rex-code-smells sweep run AFTER the cleanup edits
-[ ] No smell fixed by the cleaner — flagged and reported instead
+[ ] Every sweep finding fixed (behavior-preserving), or flagged with a permanent SMELL comment; BLOCK -> lead
 [ ] Scratch #[cfg(test)] scaffolds removed per the removal criteria
 [ ] tests/fitness, tests/contract, tests/integration untouched
 [ ] Comments plain English — no jargon, no plan references, no file pointers
@@ -220,6 +221,6 @@ Then report to the user: what was built, what the audit changed, what the cleanu
 - Fresh subagent per stage — auditors do not audit their own code, cleaners do not clean their own comments.
 - The three must-have skills go to every coding subagent, every dispatch, including redispatches.
 - Subagents share no memory. Every dispatch prompt is self-contained: brief + prior reports + skill paths.
-- `rex-code-smells` runs TWICE — the auditor sweeps and fixes, the cleaner sweeps again at opus and only flags. Skipping the second sweep is skipping a stage.
+- `rex-code-smells` runs TWICE — the auditor sweeps and fixes, the cleaner sweeps again at opus and fixes what it finds (behavior-preserving; unfixable -> permanent SMELL flag, BLOCK -> lead). Skipping the second sweep is skipping a stage.
 - Keep `checklist.md` ticked as you go. Untick nothing, skip nothing, and never report done with a box open.
 - You never edit code. Your tools are dispatch, review, verification, and the final report.

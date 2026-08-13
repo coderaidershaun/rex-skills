@@ -1,0 +1,31 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/coderaidershaun/rex-skills/main/static/logo.png" alt="Rex" width="200" />
+</p>
+
+<h1 align="center">Rex Skills</h1>
+
+<p align="center">
+  Agent skills for Rust projects, installable into any repo.
+</p>
+
+## Install
+
+```bash
+cargo install rex-skills
+```
+
+Installs the `rex` binary (replaces any existing `rex` from rex-cli).
+
+## Commands
+
+```bash
+# Install the skill bundle into ./.claude
+rex skills
+
+# Install for another vendor
+rex skills --vendor codex    # -> ./.codex
+rex skills --vendor agents   # -> ./.agents
+
+# Write a CODEBASE.md tree outline of the current repo
+rex codebase
+```
