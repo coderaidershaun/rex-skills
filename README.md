@@ -12,6 +12,7 @@
 
 ```bash
 cargo install rex-skills
+claude /rex-code-lead please build me a house made out of rust.
 ```
 
 Installs the `rex` binary (replaces any existing `rex` from rex-cli).
