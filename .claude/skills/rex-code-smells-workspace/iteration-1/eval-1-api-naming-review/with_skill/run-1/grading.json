@@ -1,0 +1,46 @@
+{
+  "run_id": "eval-1-with_skill",
+  "expectations": [
+    {
+      "text": "Flags parser module stuttering (ParserConfig / ParserResult / parser_run)",
+      "passed": true,
+      "evidence": "Findings #10 and #11: 'parser::parser_run \u2014 the module path already carries parser'; also catches ParserResult-is-not-a-Result"
+    },
+    {
+      "text": "Flags get_body getter prefix (should be body())",
+      "passed": true,
+      "evidence": "Finding #7: 'Rust reserves get for fallible/indexed access ... rename to body()'"
+    },
+    {
+      "text": "Flags as_summary: as_ promises a free view but this allocates (should be to_summary)",
+      "passed": true,
+      "evidence": "Finding #6: 'as_ means a free borrowed view; a caller reasonably calls this per render frame expecting zero cost'"
+    },
+    {
+      "text": "Flags to_len: to_ promises work but this is free (should be len())",
+      "passed": true,
+      "evidence": "Finding #5: 'a free field read, but to_ signals conversion work ... rename to len(), add is_empty()'"
+    },
+    {
+      "text": "Flags into_tags: into_ promises consuming self but this takes &self and clones",
+      "passed": true,
+      "evidence": "Finding #4: 'into_ promises a consuming move (free); this allocates a fresh Vec<String> on every call'"
+    },
+    {
+      "text": "Flags iterate: stdlib convention is iter()",
+      "passed": true,
+      "evidence": "Finding #8 flags the non-standard name; recommends tags() since the type holds two sequences (iter() only right with one obvious sequence) \u2014 convention correctly applied"
+    },
+    {
+      "text": "Findings cite line numbers",
+      "passed": true,
+      "evidence": "All 15 rows carry api.rs:<line>"
+    }
+  ],
+  "summary": {
+    "pass_rate": 1.0,
+    "passed": 7,
+    "failed": 0,
+    "total": 7
+  }
+}

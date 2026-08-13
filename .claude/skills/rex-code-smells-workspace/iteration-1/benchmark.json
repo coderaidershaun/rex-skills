@@ -1,0 +1,431 @@
+{
+  "metadata": {
+    "skill_name": "rex-code-smells",
+    "skill_path": "<path/to/skill>",
+    "executor_model": "<model-name>",
+    "analyzer_model": "<model-name>",
+    "timestamp": "2026-08-07T03:36:15Z",
+    "evals_run": [
+      0,
+      1,
+      2
+    ],
+    "runs_per_configuration": 3
+  },
+  "runs": [
+    {
+      "eval_id": 0,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 14,
+        "failed": 0,
+        "total": 14,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags the bool parameter pair (dry_run, verbose) on load_and_process",
+          "passed": true,
+          "evidence": "Finding #9 (BLOCK): 'four params including two adjacent bools ... transposing them silently turns a dry run into a live persist', cites \u00a79"
+        },
+        {
+          "text": "Flags .unwrap() / unchecked indexing on parsed external input around lines 102-104",
+          "passed": true,
+          "evidence": "Finding #1 (BLOCK), probed: 'feeding the line `heartbeat` panics ... a line with <3 commas panics earlier still, on parts[1]'"
+        },
+        {
+          "text": "Flags the duplicated magic number 86_400 (duplicated knowledge)",
+          "passed": true,
+          "evidence": "Finding #6 (BLOCK): 'magic literal 86_400.0 twice, meaning two different things', notes it reads as seconds-in-a-day"
+        },
+        {
+          "text": "Flags primitive-obsession swap risk on transfer(from_account: u64, to_account: u64, amount: u64)",
+          "passed": true,
+          "evidence": "Finding #4 (BLOCK): 'swapping the first two arguments compiles clean and moves money the wrong way', prescribes AccountId/Amount newtypes"
+        },
+        {
+          "text": "Flags the message chain order.customer().address().city() in shipping_city",
+          "passed": true,
+          "evidence": "Finding #21: '3-hop chain propped up by three middle men', plus feature-envy diagnosis of shipping_city on DataManager"
+        },
+        {
+          "text": "Flags trait Backend<T> as speculative generality (one impl, unused type param)",
+          "passed": true,
+          "evidence": "Finding #17: 'the type parameter appears nowhere in the trait ... fails the deletion test', probed the turbofish ambiguity"
+        },
+        {
+          "text": "Flags the duplicated validation logic between load_and_process and revalidate",
+          "passed": true,
+          "evidence": "Finding #16: 'the same validation rule encoded twice' with both line ranges"
+        },
+        {
+          "text": "Flags get_name getter prefix",
+          "passed": true,
+          "evidence": "Finding #19: 'get_ prefix, and the name lies' (returns the customer's name)"
+        },
+        {
+          "text": "Flags as_json as a conversion-prefix violation (as_ must be free, this allocates)",
+          "passed": true,
+          "evidence": "Finding #20: 'as_json allocates, and silently drops qty'"
+        },
+        {
+          "text": "Flags parse_buffer as a temporary field (Option only Some during one phase)",
+          "passed": true,
+          "evidence": "Finding #14: 'temporary field with a writer and no reader', notes the panic path leaves it Some forever"
+        },
+        {
+          "text": "Flags the brittle Debug-format assertion in the test module",
+          "passed": true,
+          "evidence": "Finding #25: 'test asserts an exact nested Debug string ... pins formatting, not the type'"
+        },
+        {
+          "text": "Flags f64 used as a money accumulator",
+          "passed": true,
+          "evidence": "Finding #8 (BLOCK), probed 0.1+0.2 drift; cites \u00a74, prescribes i64 mantissas"
+        },
+        {
+          "text": "Does NOT flag the decoys: RetryCfg/base_delay_ms, is_ready, or the checksum loop index i",
+          "passed": true,
+          "evidence": "RetryCfg flagged only as dead code (true), never for the Cfg abbreviation; is_ready never flagged for naming; loop index i untouched"
+        },
+        {
+          "text": "Every finding cites a file:line location",
+          "passed": true,
+          "evidence": "All 31 rows carry planted.rs:<line> in the Where column"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags parser module stuttering (ParserConfig / ParserResult / parser_run)",
+          "passed": true,
+          "evidence": "Findings #10 and #11: 'parser::parser_run \u2014 the module path already carries parser'; also catches ParserResult-is-not-a-Result"
+        },
+        {
+          "text": "Flags get_body getter prefix (should be body())",
+          "passed": true,
+          "evidence": "Finding #7: 'Rust reserves get for fallible/indexed access ... rename to body()'"
+        },
+        {
+          "text": "Flags as_summary: as_ promises a free view but this allocates (should be to_summary)",
+          "passed": true,
+          "evidence": "Finding #6: 'as_ means a free borrowed view; a caller reasonably calls this per render frame expecting zero cost'"
+        },
+        {
+          "text": "Flags to_len: to_ promises work but this is free (should be len())",
+          "passed": true,
+          "evidence": "Finding #5: 'a free field read, but to_ signals conversion work ... rename to len(), add is_empty()'"
+        },
+        {
+          "text": "Flags into_tags: into_ promises consuming self but this takes &self and clones",
+          "passed": true,
+          "evidence": "Finding #4: 'into_ promises a consuming move (free); this allocates a fresh Vec<String> on every call'"
+        },
+        {
+          "text": "Flags iterate: stdlib convention is iter()",
+          "passed": true,
+          "evidence": "Finding #8 flags the non-standard name; recommends tags() since the type holds two sequences (iter() only right with one obvious sequence) \u2014 convention correctly applied"
+        },
+        {
+          "text": "Findings cite line numbers",
+          "passed": true,
+          "evidence": "All 15 rows carry api.rs:<line>"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Every reported finding cites code that actually exists at the cited file:line (no fabrication)",
+          "passed": true,
+          "evidence": "Spot-checked all three BLOCKs plus #14 against source: rest_quiet.rs open() floor-no-ceiling confirmed; chunk.rs emit_side empty early-return confirmed; depth.rs:151-155 Stale guard + comment confirmed verbatim; hot/book.rs is_last_chunk/AwaitingSnapshot semantics confirmed; is_active/remaining duplication confirmed"
+        },
+        {
+          "text": "The report reaches an explicit verdict and states what was checked (clean is acceptable)",
+          "passed": true,
+          "evidence": "Clean section lists eight checked-and-passed properties with \u00a7-law citations; Not-checked section discloses clippy skipped (peer agents in checkout) and why"
+        },
+        {
+          "text": "No finding is a restatement of an intentional, project-lawful pattern presented as a defect",
+          "passed": true,
+          "evidence": "Report explicitly downgraded two candidates after reading call sites; Clean section credits \u00a72/\u00a73/\u00a74-compliant patterns rather than flagging them"
+        },
+        {
+          "text": "Report distinguishes severity rather than presenting all findings as equal",
+          "passed": true,
+          "evidence": "3 BLOCK / 4 REFACTOR / 7 NIT with the three BLOCKs argued in detail"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 0,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.8571,
+        "passed": 12,
+        "failed": 2,
+        "total": 14,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags the bool parameter pair (dry_run, verbose) on load_and_process",
+          "passed": true,
+          "evidence": "Finding #11: 'four parameters, two of them bool, giving call sites like load_and_process(raw, 0, false, true)'"
+        },
+        {
+          "text": "Flags .unwrap() / unchecked indexing on parsed external input around lines 102-104",
+          "passed": true,
+          "evidence": "Finding #6 (High), verified: 'the single line 1,10.0 panics with index out of bounds'"
+        },
+        {
+          "text": "Flags the duplicated magic number 86_400 (duplicated knowledge)",
+          "passed": true,
+          "evidence": "Finding #19: '86_400.0 doing two unrelated jobs' plus low-section note that it is seconds-in-a-day"
+        },
+        {
+          "text": "Flags primitive-obsession swap risk on transfer(from_account: u64, to_account: u64, amount: u64)",
+          "passed": false,
+          "evidence": "transfer earns four findings (minting, overdraft, lossy cast, non-atomicity) but the from/to swap-compatibility risk is never stated; the only swap mention is about store(key, value) in finding #17"
+        },
+        {
+          "text": "Flags the message chain order.customer().address().city() in shipping_city",
+          "passed": true,
+          "evidence": "Finding #16: 'Message chain / Law of Demeter', including the middle-man getters"
+        },
+        {
+          "text": "Flags trait Backend<T> as speculative generality (one impl, unused type param)",
+          "passed": true,
+          "evidence": "Finding #17: 'a type parameter that pays no rent', cites the forced turbofish"
+        },
+        {
+          "text": "Flags the duplicated validation logic between load_and_process and revalidate",
+          "passed": true,
+          "evidence": "Finding #13: 'Duplicated validation with divergent shapes', notes the shared NaN hole"
+        },
+        {
+          "text": "Flags get_name getter prefix",
+          "passed": true,
+          "evidence": "Low section: 'Rust getters drop the get_ prefix by convention'"
+        },
+        {
+          "text": "Flags as_json as a conversion-prefix violation (as_ must be free, this allocates)",
+          "passed": true,
+          "evidence": "Low section: 'as_* signals a cheap borrowed conversion; this allocates, so it should be to_json'"
+        },
+        {
+          "text": "Flags parse_buffer as a temporary field (Option only Some during one phase)",
+          "passed": true,
+          "evidence": "Finding #15: 'a local variable that escaped into the struct'"
+        },
+        {
+          "text": "Flags the brittle Debug-format assertion in the test module",
+          "passed": true,
+          "evidence": "Finding #10: 'asserts the exact {:?} string of a derived Debug ... maximum brittleness for zero coverage'"
+        },
+        {
+          "text": "Flags f64 used as a money accumulator",
+          "passed": true,
+          "evidence": "Finding #7 (High): 'f64 money accumulators throughout'"
+        },
+        {
+          "text": "Does NOT flag the decoys: RetryCfg/base_delay_ms, is_ready, or the checksum loop index i",
+          "passed": false,
+          "evidence": "Low-naming section flags RetryCfg's name itself ('RetryCfg (:68) \u2014 Cfg') \u2014 the Cfg abbreviation is idiomatic under house \u00a79 ('cfg, ctx idiomatic OK') and was a planted decoy; is_ready and loop i correctly untouched"
+        },
+        {
+          "text": "Every finding cites a file:line location",
+          "passed": true,
+          "evidence": "Summary table carries line numbers; naming list cites :5, :7, :49, :53, :68 etc."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags parser module stuttering (ParserConfig / ParserResult / parser_run)",
+          "passed": true,
+          "evidence": "Finding #8: full stutter table with C-STUTTER citation; finding #9 adds ParserResult-is-not-a-Result"
+        },
+        {
+          "text": "Flags get_body getter prefix (should be body())",
+          "passed": true,
+          "evidence": "Finding #4: cites C-GETTER, prescribes body()"
+        },
+        {
+          "text": "Flags as_summary: as_ promises a free view but this allocates (should be to_summary)",
+          "passed": true,
+          "evidence": "Finding #2: 'as_ means a free, borrowed view \u2014 a pointer cast at most'"
+        },
+        {
+          "text": "Flags to_len: to_ promises work but this is free (should be len())",
+          "passed": true,
+          "evidence": "Finding #3: 'a plain field read ... should be len()' plus len_without_is_empty note"
+        },
+        {
+          "text": "Flags into_tags: into_ promises consuming self but this takes &self and clones",
+          "passed": true,
+          "evidence": "Finding #1: 'the name promises the Document is gone afterwards; the compiler happily lets the caller keep using it'"
+        },
+        {
+          "text": "Flags iterate: stdlib convention is iter()",
+          "passed": true,
+          "evidence": "Finding #11: 'the convention is iter() (C-ITER)', recommends tags() naming for multi-collection type"
+        },
+        {
+          "text": "Findings cite line numbers",
+          "passed": true,
+          "evidence": "Every finding header carries a line reference"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Every reported finding cites code that actually exists at the cited file:line (no fabrication)",
+          "passed": true,
+          "evidence": "Core citations (rest_quiet open floor-no-ceiling, chunk emit_side empty return, depth.rs Stale guard, signed.rs sleep-on-retry) verified against source and independently corroborated by the with-skill run reaching the same findings"
+        },
+        {
+          "text": "The report reaches an explicit verdict and states what was checked (clean is acceptable)",
+          "passed": true,
+          "evidence": "Headline verdict ('all three are small and clean-reading, but each holds an invariant it does not enforce') plus explicit scope statement; no dedicated clean-checklist section but verdict is unambiguous"
+        },
+        {
+          "text": "No finding is a restatement of an intentional, project-lawful pattern presented as a defect",
+          "passed": true,
+          "evidence": "Findings argue concrete failure modes with \u00a7-law citations used correctly (e.g. \u00a76 external-input policy, \u00a75 stamp law); lawful fixed-capacity/no-rand design choices are credited, not flagged"
+        },
+        {
+          "text": "Report distinguishes severity rather than presenting all findings as equal",
+          "passed": true,
+          "evidence": "High / Medium / Low sections plus a prioritised order-of-work list"
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "tokens": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "without_skill": {
+      "pass_rate": {
+        "mean": 0.9524,
+        "stddev": 0.0825,
+        "min": 0.8571,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "tokens": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "delta": {
+      "pass_rate": "+0.05",
+      "time_seconds": "+0.0",
+      "tokens": "+0"
+    }
+  },
+  "notes": [
+    "Baseline is near-ceiling on raw detection: Fable 5 with the project constitution in context scored 23/25 without the skill. The skill's measured delta is precision and form, not raw catch-rate.",
+    "Both baseline failures are house-idiom precision items: it flagged the planted decoy RetryCfg's 'Cfg' abbreviation (idiomatic under \u00a79 and rex-code-ergonomics), and it never stated the from/to swap-compatibility risk on transfer() despite four other findings on that function.",
+    "The skill's largest effect is report form: 48 vs 393 lines (eval-0), 39 vs 258 (eval-1), 76 vs 183 (eval-2) for equal-or-better coverage, with all three with-skill reports in the identical table format, BLOCK/REFACTOR/NIT severity, and Clean/Not-checked disclosure sections. Reports are mergeable across audits; baselines each invented their own structure.",
+    "Non-discriminating evals: eval-1 (7/7 both configs) and eval-2 (4/4 both configs) did not separate the configs. The planted API-naming defects are too easy for this model; if iterating, harden eval-1 with subtler violations or accept it as a regression floor.",
+    "Eval-2 side effect worth acting on: both configs independently converged on the same real production defects in src/adapters/ (unbounded Retry-After reaching a sleep on the order path; both-sides-empty snapshot never emits is_last_chunk and wedges the Polymarket hot book after a BookReset; rest_quiet's 'shared' doc header describes sharing that does not exist; backoff jitter does not decorrelate concurrent actors). Independent convergence is strong evidence these are genuine.",
+    "Time/token columns are zero because the subagent idle notifications carried no usage data; the 5-8x report-length ratio is the only cost proxy available.",
+    "Run-harness flake: 3 of 6 subagents went idle before saving report.md and needed one nudge message each; report contents were unaffected."
+  ]
+}

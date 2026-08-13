@@ -1,0 +1,31 @@
+{
+  "run_id": "eval-2-with_skill",
+  "expectations": [
+    {
+      "text": "Every reported finding cites code that actually exists at the cited file:line (no fabrication)",
+      "passed": true,
+      "evidence": "Spot-checked all three BLOCKs plus #14 against source: rest_quiet.rs open() floor-no-ceiling confirmed; chunk.rs emit_side empty early-return confirmed; depth.rs:151-155 Stale guard + comment confirmed verbatim; hot/book.rs is_last_chunk/AwaitingSnapshot semantics confirmed; is_active/remaining duplication confirmed"
+    },
+    {
+      "text": "The report reaches an explicit verdict and states what was checked (clean is acceptable)",
+      "passed": true,
+      "evidence": "Clean section lists eight checked-and-passed properties with \u00a7-law citations; Not-checked section discloses clippy skipped (peer agents in checkout) and why"
+    },
+    {
+      "text": "No finding is a restatement of an intentional, project-lawful pattern presented as a defect",
+      "passed": true,
+      "evidence": "Report explicitly downgraded two candidates after reading call sites; Clean section credits \u00a72/\u00a73/\u00a74-compliant patterns rather than flagging them"
+    },
+    {
+      "text": "Report distinguishes severity rather than presenting all findings as equal",
+      "passed": true,
+      "evidence": "3 BLOCK / 4 REFACTOR / 7 NIT with the three BLOCKs argued in detail"
+    }
+  ],
+  "summary": {
+    "pass_rate": 1.0,
+    "passed": 4,
+    "failed": 0,
+    "total": 4
+  }
+}

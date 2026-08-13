@@ -1,0 +1,46 @@
+{
+  "run_id": "eval-1-without_skill",
+  "expectations": [
+    {
+      "text": "Flags parser module stuttering (ParserConfig / ParserResult / parser_run)",
+      "passed": true,
+      "evidence": "Finding #8: full stutter table with C-STUTTER citation; finding #9 adds ParserResult-is-not-a-Result"
+    },
+    {
+      "text": "Flags get_body getter prefix (should be body())",
+      "passed": true,
+      "evidence": "Finding #4: cites C-GETTER, prescribes body()"
+    },
+    {
+      "text": "Flags as_summary: as_ promises a free view but this allocates (should be to_summary)",
+      "passed": true,
+      "evidence": "Finding #2: 'as_ means a free, borrowed view \u2014 a pointer cast at most'"
+    },
+    {
+      "text": "Flags to_len: to_ promises work but this is free (should be len())",
+      "passed": true,
+      "evidence": "Finding #3: 'a plain field read ... should be len()' plus len_without_is_empty note"
+    },
+    {
+      "text": "Flags into_tags: into_ promises consuming self but this takes &self and clones",
+      "passed": true,
+      "evidence": "Finding #1: 'the name promises the Document is gone afterwards; the compiler happily lets the caller keep using it'"
+    },
+    {
+      "text": "Flags iterate: stdlib convention is iter()",
+      "passed": true,
+      "evidence": "Finding #11: 'the convention is iter() (C-ITER)', recommends tags() naming for multi-collection type"
+    },
+    {
+      "text": "Findings cite line numbers",
+      "passed": true,
+      "evidence": "Every finding header carries a line reference"
+    }
+  ],
+  "summary": {
+    "pass_rate": 1.0,
+    "passed": 7,
+    "failed": 0,
+    "total": 7
+  }
+}

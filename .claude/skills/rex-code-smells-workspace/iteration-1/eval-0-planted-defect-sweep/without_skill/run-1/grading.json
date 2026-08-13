@@ -1,0 +1,81 @@
+{
+  "run_id": "eval-0-without_skill",
+  "expectations": [
+    {
+      "text": "Flags the bool parameter pair (dry_run, verbose) on load_and_process",
+      "passed": true,
+      "evidence": "Finding #11: 'four parameters, two of them bool, giving call sites like load_and_process(raw, 0, false, true)'"
+    },
+    {
+      "text": "Flags .unwrap() / unchecked indexing on parsed external input around lines 102-104",
+      "passed": true,
+      "evidence": "Finding #6 (High), verified: 'the single line 1,10.0 panics with index out of bounds'"
+    },
+    {
+      "text": "Flags the duplicated magic number 86_400 (duplicated knowledge)",
+      "passed": true,
+      "evidence": "Finding #19: '86_400.0 doing two unrelated jobs' plus low-section note that it is seconds-in-a-day"
+    },
+    {
+      "text": "Flags primitive-obsession swap risk on transfer(from_account: u64, to_account: u64, amount: u64)",
+      "passed": false,
+      "evidence": "transfer earns four findings (minting, overdraft, lossy cast, non-atomicity) but the from/to swap-compatibility risk is never stated; the only swap mention is about store(key, value) in finding #17"
+    },
+    {
+      "text": "Flags the message chain order.customer().address().city() in shipping_city",
+      "passed": true,
+      "evidence": "Finding #16: 'Message chain / Law of Demeter', including the middle-man getters"
+    },
+    {
+      "text": "Flags trait Backend<T> as speculative generality (one impl, unused type param)",
+      "passed": true,
+      "evidence": "Finding #17: 'a type parameter that pays no rent', cites the forced turbofish"
+    },
+    {
+      "text": "Flags the duplicated validation logic between load_and_process and revalidate",
+      "passed": true,
+      "evidence": "Finding #13: 'Duplicated validation with divergent shapes', notes the shared NaN hole"
+    },
+    {
+      "text": "Flags get_name getter prefix",
+      "passed": true,
+      "evidence": "Low section: 'Rust getters drop the get_ prefix by convention'"
+    },
+    {
+      "text": "Flags as_json as a conversion-prefix violation (as_ must be free, this allocates)",
+      "passed": true,
+      "evidence": "Low section: 'as_* signals a cheap borrowed conversion; this allocates, so it should be to_json'"
+    },
+    {
+      "text": "Flags parse_buffer as a temporary field (Option only Some during one phase)",
+      "passed": true,
+      "evidence": "Finding #15: 'a local variable that escaped into the struct'"
+    },
+    {
+      "text": "Flags the brittle Debug-format assertion in the test module",
+      "passed": true,
+      "evidence": "Finding #10: 'asserts the exact {:?} string of a derived Debug ... maximum brittleness for zero coverage'"
+    },
+    {
+      "text": "Flags f64 used as a money accumulator",
+      "passed": true,
+      "evidence": "Finding #7 (High): 'f64 money accumulators throughout'"
+    },
+    {
+      "text": "Does NOT flag the decoys: RetryCfg/base_delay_ms, is_ready, or the checksum loop index i",
+      "passed": false,
+      "evidence": "Low-naming section flags RetryCfg's name itself ('RetryCfg (:68) \u2014 Cfg') \u2014 the Cfg abbreviation is idiomatic under house \u00a79 ('cfg, ctx idiomatic OK') and was a planted decoy; is_ready and loop i correctly untouched"
+    },
+    {
+      "text": "Every finding cites a file:line location",
+      "passed": true,
+      "evidence": "Summary table carries line numbers; naming list cites :5, :7, :49, :53, :68 etc."
+    }
+  ],
+  "summary": {
+    "pass_rate": 0.8571,
+    "passed": 12,
+    "failed": 2,
+    "total": 14
+  }
+}

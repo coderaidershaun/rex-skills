@@ -1,0 +1,33 @@
+{
+  "planted.rs": [
+    {"id": "P01", "line": 5, "lens": "naming", "defect": "DataManager noise-word type name says nothing about what it is"},
+    {"id": "P02", "line": 7, "lens": "naming", "defect": "usr_cnt abbreviation -> user_count"},
+    {"id": "P03", "line": 8, "lens": "naming", "defect": "active: bool not a predicate -> is_active"},
+    {"id": "P04", "line": 10, "lens": "smell", "defect": "temporary field: parse_buffer Option<String> only Some during load_and_process"},
+    {"id": "P05", "line": 49, "lens": "naming", "defect": "get_name getter prefix -> name()"},
+    {"id": "P06", "line": 53, "lens": "naming", "defect": "as_json allocates; as_ promises free view -> to_json"},
+    {"id": "P07", "line": 58, "lens": "smell", "defect": "speculative generality: trait Backend<T> has one impl and T is never used"},
+    {"id": "P08", "line": 93, "lens": "smell", "defect": "load_and_process: long fn (~57 lines, parse+validate+persist = 3 jobs), two bool params (dry_run, verbose), unit-less timeout: u64"},
+    {"id": "P09", "line": 94, "lens": "brittleness", "defect": "ordering dependency: assert!(self.initialized) — sequence not enforced by types"},
+    {"id": "P10", "line": 102, "lens": "brittleness", "defect": "parts[0..2] unchecked index + .unwrap() on parse of external input (lines 102-104)"},
+    {"id": "P11", "line": 119, "lens": "brittleness", "defect": "magic number 86_400 duplicated (lines 119, 127, 128) — duplicated knowledge"},
+    {"id": "P12", "line": 117, "lens": "brittleness", "defect": "f64 money accumulator (total, account balances)"},
+    {"id": "P13", "line": 151, "lens": "smell", "defect": "duplicate code: validation block in load_and_process (105-116) re-encoded in revalidate (151-162)"},
+    {"id": "P14", "line": 164, "lens": "smell", "defect": "primitive obsession: transfer(from_account: u64, to_account: u64, amount: u64) — swapped args compile"},
+    {"id": "P15", "line": 173, "lens": "smell", "defect": "message chain: order.customer().address().city()"},
+    {"id": "P16", "line": 201, "lens": "brittleness", "defect": "brittle test: asserts exact Debug format string"}
+  ],
+  "planted.rs_decoys_must_not_flag": [
+    {"id": "D01", "line": 68, "note": "RetryCfg / base_delay_ms — cfg idiomatic, delay has unit suffix"},
+    {"id": "D02", "line": 89, "note": "is_ready — correct predicate"},
+    {"id": "D03", "line": 178, "note": "checksum loop index i — idiomatic"}
+  ],
+  "api.rs": [
+    {"id": "A01", "line": 4, "defect": "stuttering: parser::ParserConfig, parser::ParserResult, parser::parser_run"},
+    {"id": "A02", "line": 34, "defect": "get_body getter prefix -> body()"},
+    {"id": "A03", "line": 38, "defect": "as_summary allocates -> to_summary (as_ = free view)"},
+    {"id": "A04", "line": 43, "defect": "to_len is free -> len() (to_ = expensive work)"},
+    {"id": "A05", "line": 47, "defect": "into_tags takes &self and clones — into_ promises consuming self"},
+    {"id": "A06", "line": 51, "defect": "iterate -> iter() stdlib convention"}
+  ]
+}
