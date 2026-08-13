@@ -8,10 +8,13 @@
   Agent skills for Rust projects, installable into any repo.
 </p>
 
-## Install
+## Install and Run
 
 ```bash
 cargo install rex-skills
+
+# Then in your repo
+rex skills
 claude /rex-code-lead please build me a house made out of rust.
 ```
 
