@@ -41,6 +41,7 @@ These three are loaded by EVERY coding subagent, every time, no exceptions:
 | -------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | rex-grill-me               | `.claude/skills/rex-grill-me/SKILL.md`                                          | Relentlessly interview the user about a plan until shared understanding.  | User wants their plan stress-tested. Not part of the coding pipeline. |
 | rex-caveman          | `.claude/skills/rex-caveman/SKILL.md`                                     | Ultra-compressed communication mode (~75% fewer tokens).                  | User asks for caveman mode / brevity. Never changes code style.       |
+| rex-codex-adversarial-review | `.claude/skills/rex-codex-adversarial-review/SKILL.md`            | Second-model challenge review: `codex exec` (read-only) questions the approach and hunts defects, Claude cross-examines every finding, one rebuttal round, verdict table. | User asks for an adversarial / second-opinion / codex review. Opt-in stage of rex-code-lead — never runs unprompted. |
 | rex-mermaid-diagrams | `.claude/skills/rex-mermaid-diagrams/SKILL.md` (+ README.md, references/) | Author Mermaid diagrams: class, sequence, flowchart, ERD, C4, state, etc. | Task asks for diagrams or architecture documentation.                 |
 
 ## Orchestration

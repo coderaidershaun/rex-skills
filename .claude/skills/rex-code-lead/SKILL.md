@@ -213,6 +213,12 @@ Lead gate: any behavior change or deleted flag -> reject, redispatch to restore.
 
 Then report to the user: what was built, what the audit changed, what the cleanup removed, and the remaining flagged smells from the final sweep with their severities.
 
+## Optional stage — Codex adversarial review (opt-in ONLY)
+
+Run this stage ONLY when the user has explicitly asked for it — in the task itself or during the run. It is NOT part of the default pipeline and the lead never triggers it unprompted.
+
+When asked: after the final gate is green, follow `.claude/skills/rex-codex-adversarial-review/SKILL.md` over the final diff — Codex challenges the approach in a read-only sandbox, the lead cross-examines its findings, one rebuttal round — and append its verdict table to the report.
+
 ## Hard rules for the lead
 
 - No code before an advisor-APPROVED plan. Ever. Plan and review live in the tmp dir, never the repo.
@@ -223,4 +229,5 @@ Then report to the user: what was built, what the audit changed, what the cleanu
 - Subagents share no memory. Every dispatch prompt is self-contained: brief + prior reports + skill paths.
 - `rex-code-smells` runs TWICE — the auditor sweeps and fixes, the cleaner sweeps again at opus and fixes what it finds (behavior-preserving; unfixable -> permanent SMELL flag, BLOCK -> lead). Skipping the second sweep is skipping a stage.
 - Keep `checklist.md` ticked as you go. Untick nothing, skip nothing, and never report done with a box open.
+- Codex adversarial review is opt-in — run it only on explicit user request, after the final gate, never by default.
 - You never edit code. Your tools are dispatch, review, verification, and the final report.

@@ -1,9 +1,10 @@
 use std::path::PathBuf;
 
 use anyhow::{Context, Result};
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
 
 use rex_skills::commands::codebase;
+use rex_skills::commands::commands;
 use rex_skills::commands::skills::{self, Vendor};
 
 #[derive(Parser)]
@@ -20,6 +21,7 @@ struct Cli {
 #[derive(Subcommand)]
 enum Command {
     /// Install the rex agent skill bundle into the working directory.
+    #[command(visible_alias = "init")]
     Skills {
         /// Which agent tool to install the bundle for.
         #[arg(long, value_enum, default_value_t = Vendor::Claude)]
@@ -28,6 +30,9 @@ enum Command {
 
     /// Write a tree outline of the working directory to CODEBASE.md.
     Codebase,
+
+    /// List every available command with its full invocation path and description.
+    Commands,
 }
 
 fn main() -> Result<()> {
@@ -40,6 +45,9 @@ fn main() -> Result<()> {
         }
         Command::Codebase => {
             codebase::run(&cwd).context("rex codebase failed")?;
+        }
+        Command::Commands => {
+            commands::run(&Cli::command());
         }
     }
 

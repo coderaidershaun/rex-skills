@@ -21,6 +21,7 @@ Installs the `rex` binary (replaces any existing `rex` from rex-cli).
 ```bash
 # Install the skill bundle into ./.claude
 rex skills
+rex init                     # same command, alias
 
 # Install for another vendor
 rex skills --vendor codex    # -> ./.codex
@@ -28,4 +29,8 @@ rex skills --vendor agents   # -> ./.agents
 
 # Write a CODEBASE.md tree outline of the current repo
 rex codebase
+
+# List every available command
+rex commands
+rex help
 ```
