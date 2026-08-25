@@ -1,2 +1,12 @@
-/target
 /CODEBASE.md
+
+# Rust
+/target
+
+# Editors and tooling
+.idea/
+.vscode/
+*.swp
+
+# macOS
+.DS_Store
