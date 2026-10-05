@@ -1,6 +1,6 @@
 [package]
 name = "rex-skills"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 authors = ["Shaun McDonogh"]
 description = "Install the rex agent skill bundle into any project, plus a CODEBASE.md tree generator"
