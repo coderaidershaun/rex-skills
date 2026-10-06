@@ -29,7 +29,10 @@ fn fresh_install_writes_every_bundle_file() {
         .success();
 
     let stdout = String::from_utf8(assert.get_output().stdout.clone()).expect("utf8 stdout");
-    assert_eq!(stdout, format!("rex skills: {n} written, 0 skipped\n"));
+    assert_eq!(
+        stdout,
+        format!("rex skills: {n} written, 0 skipped\nrex skills: AGENTS.md created\n")
+    );
 
     let installed = fs::read(dir.path().join(".claude/skills/INDEX.md")).expect("read INDEX.md");
     assert_eq!(installed, find_index_md_contents());
@@ -92,7 +95,10 @@ fn existing_modified_file_is_never_touched() {
     let stdout = String::from_utf8(assert.get_output().stdout.clone()).expect("utf8 stdout");
     assert_eq!(
         stdout,
-        format!("rex skills: {} written, 1 skipped\n", n - 1)
+        format!(
+            "rex skills: {} written, 1 skipped\nrex skills: AGENTS.md created\n",
+            n - 1
+        )
     );
 
     let contents = fs::read(dir.path().join(".claude/skills/INDEX.md")).expect("read INDEX.md");
@@ -188,7 +194,66 @@ fn init_alias_installs_like_skills() {
         .success();
 
     let stdout = String::from_utf8(assert.get_output().stdout.clone()).expect("utf8 stdout");
-    assert_eq!(stdout, format!("rex skills: {n} written, 0 skipped\n"));
+    assert_eq!(
+        stdout,
+        format!("rex skills: {n} written, 0 skipped\nrex skills: AGENTS.md created\n")
+    );
 
     assert!(dir.path().join(".claude/skills/INDEX.md").is_file());
+}
+
+#[test]
+fn fresh_install_creates_agents_md_with_codebase_section() {
+    let dir = tempdir().expect("create tempdir");
+
+    let assert = Command::cargo_bin("rex")
+        .expect("find rex binary")
+        .args(["skills", "--vendor", "codex"])
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    let stdout = String::from_utf8(assert.get_output().stdout.clone()).expect("utf8 stdout");
+    assert!(stdout.ends_with("rex skills: AGENTS.md created\n"));
+
+    let agents_md = fs::read_to_string(dir.path().join("AGENTS.md")).expect("read AGENTS.md");
+    assert!(agents_md.starts_with("<!-- rex:codebase -->\n## Codebase map\n"));
+    assert!(agents_md.contains("`rex codebase --rust-only --with-context`"));
+}
+
+#[test]
+fn existing_agents_md_gets_section_on_top_once() {
+    let dir = tempdir().expect("create tempdir");
+    let old: &[u8] = b"# My project\n\nKeep me exactly as I am.\n";
+    fs::write(dir.path().join("AGENTS.md"), old).expect("write AGENTS.md");
+
+    let first = Command::cargo_bin("rex")
+        .expect("find rex binary")
+        .arg("skills")
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    let stdout = String::from_utf8(first.get_output().stdout.clone()).expect("utf8 stdout");
+    assert!(stdout.ends_with("rex skills: AGENTS.md updated\n"));
+
+    let after_first = fs::read(dir.path().join("AGENTS.md")).expect("read AGENTS.md");
+    assert!(after_first.starts_with(b"<!-- rex:codebase -->\n## Codebase map\n"));
+    assert!(
+        after_first.ends_with(&[b"\n\n", old].concat()),
+        "old bytes must follow the section after one blank line"
+    );
+
+    let second = Command::cargo_bin("rex")
+        .expect("find rex binary")
+        .arg("skills")
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    let stdout = String::from_utf8(second.get_output().stdout.clone()).expect("utf8 stdout");
+    assert!(!stdout.contains("AGENTS.md"));
+
+    let after_second = fs::read(dir.path().join("AGENTS.md")).expect("read AGENTS.md");
+    assert_eq!(after_first, after_second);
 }

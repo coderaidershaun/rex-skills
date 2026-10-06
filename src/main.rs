@@ -11,7 +11,7 @@ use rex_skills::commands::skills::{self, Vendor};
 #[command(
     name = "rex",
     version,
-    about = "Install the rex agent skill bundle and generate a CODEBASE.md tree"
+    about = "Install the rex agent skill bundle and print a tree of a codebase"
 )]
 struct Cli {
     #[command(subcommand)]
@@ -20,7 +20,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Install the rex agent skill bundle into the working directory.
+    /// Install the rex agent skill bundle and add a codebase-map section to AGENTS.md.
     #[command(visible_alias = "init")]
     Skills {
         /// Which agent tool to install the bundle for.
@@ -28,8 +28,8 @@ enum Command {
         vendor: Vendor,
     },
 
-    /// Write a tree outline of the working directory to CODEBASE.md.
-    Codebase,
+    /// Print a tree outline of the working directory.
+    Codebase(codebase::CodebaseOptions),
 
     /// List every available command with its full invocation path and description.
     Commands,
@@ -43,8 +43,8 @@ fn main() -> Result<()> {
         Command::Skills { vendor } => {
             skills::run(&cwd, vendor).context("rex skills failed")?;
         }
-        Command::Codebase => {
-            codebase::run(&cwd).context("rex codebase failed")?;
+        Command::Codebase(options) => {
+            codebase::run(&cwd, options).context("rex codebase failed")?;
         }
         Command::Commands => {
             commands::run(&Cli::command());
