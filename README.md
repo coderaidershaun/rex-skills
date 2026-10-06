@@ -15,10 +15,10 @@ cargo install rex-skills
 
 # Then in your repo
 rex skills
-claude /rex-code-lead please build me a house made out of rust.
+claude /rex-code-orchestrator please build me a house made out of rust.
 
-# Many features? One fresh code lead per feature, a commit after each
-claude /rex-code-feature-orchestrator please build every feature in FEATURES.md.
+# One fresh code lead per feature, fix, or chore, with a commit after each
+claude /rex-code-orchestrator please build every feature in FEATURES.md.
 ```
 
 Installs the `rex` binary (replaces any existing `rex` from rex-cli).
