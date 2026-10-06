@@ -23,6 +23,8 @@ Run one of these commands before you search the tree by hand. Each one prints a 
 - `rex codebase --rust-only`: only `.rs` files.
 - `rex codebase --with-context`: adds the first sentence of each Rust module's `//!` doc comment to its line.
 - `rex codebase --rust-only --with-context`: the Rust modules and what each one is for. Start here in a Rust crate.
+
+Add `--for-human` to write the tree to `CODEBASE.md` instead of printing it, for example `rex codebase --for-human --rust-only --with-context`.
 ";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

@@ -219,6 +219,7 @@ fn fresh_install_creates_agents_md_with_codebase_section() {
     let agents_md = fs::read_to_string(dir.path().join("AGENTS.md")).expect("read AGENTS.md");
     assert!(agents_md.starts_with("<!-- rex:codebase -->\n## Codebase map\n"));
     assert!(agents_md.contains("`rex codebase --rust-only --with-context`"));
+    assert!(agents_md.contains("`rex codebase --for-human --rust-only --with-context`"));
 }
 
 #[test]
