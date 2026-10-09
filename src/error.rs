@@ -20,7 +20,7 @@ pub enum RexError {
         source: ignore::Error,
     },
 
-    #[error("failed to write the tree to stdout")]
+    #[error("failed to write to stdout")]
     Stdout {
         #[source]
         source: std::io::Error,

@@ -220,6 +220,8 @@ fn fresh_install_creates_agents_md_with_codebase_section() {
     assert!(agents_md.starts_with("<!-- rex:codebase -->\n## Codebase map\n"));
     assert!(agents_md.contains("`rex codebase --rust-only --with-context`"));
     assert!(agents_md.contains("`rex codebase --for-human --rust-only --with-context`"));
+    assert!(agents_md.contains("\n## Code smells\n"));
+    assert!(agents_md.contains("- `rex smells`: "));
 }
 
 #[test]

@@ -4,3 +4,6 @@ pub mod codebase;
 #[allow(clippy::module_inception)]
 pub mod commands;
 pub mod skills;
+pub mod smells;
+mod stdout;
+mod walk;

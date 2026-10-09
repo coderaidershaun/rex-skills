@@ -23,7 +23,7 @@ claude /rex-code-orchestrator please build every feature in FEATURES.md.
 
 Installs the `rex` binary (replaces any existing `rex` from rex-cli).
 
-`rex skills` (and `rex init`) also put a "Codebase map" section on top of `AGENTS.md`, creating the file if it is missing. The section tells an agent to run `rex codebase` before it searches the tree by hand. It is added once: a file that already has the `<!-- rex:codebase -->` line is not changed. To refresh the section, delete it and run `rex skills` again.
+`rex skills` (and `rex init`) also put a "Codebase map" section and a "Code smells" section on top of `AGENTS.md`, creating the file if it is missing. The first tells an agent to run `rex codebase` before it searches the tree by hand. The second tells it to run `rex smells` to find each `SMELL:` flag left in the code. They are added once: a file that already has the `<!-- rex:codebase -->` line is not changed. To refresh them, delete both sections and that line, then run `rex skills` again.
 
 Claude Code reads `AGENTS.md` only when the project has no `CLAUDE.md`. If you have one, add the line `@AGENTS.md` to it, or set Project instructions to `claude-md-and-agents-md`.
 
@@ -45,8 +45,10 @@ rex codebase --with-context               # add the first `//!` sentence to each
 rex codebase --rust-only --with-context   # the Rust modules and what each is for
 
 # Write the tree to CODEBASE.md instead of printing it (works with the other flags)
-rex codebase --for-human
 rex codebase --for-human --rust-only --with-context
+
+# List every `SMELL:` flag comment in the Rust files as path:line, then the count
+rex smells
 
 # List every available command
 rex commands

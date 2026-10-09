@@ -1,5 +1,6 @@
 //! Installs the embedded skill bundle into the current working directory and
-//! points agents at the `rex codebase` command through `AGENTS.md`.
+//! points agents at the `rex codebase` and `rex smells` commands through
+//! `AGENTS.md`.
 
 use std::fs;
 use std::io::ErrorKind;
@@ -10,8 +11,8 @@ use crate::error::RexError;
 
 const AGENTS_FILENAME: &str = "AGENTS.md";
 
-/// The codebase section starts with this line. Finding it in `AGENTS.md` is
-/// what stops a second run from adding the section again.
+/// The rex sections start with this line. Finding it in `AGENTS.md` is what
+/// stops a second run from adding the sections again.
 const CODEBASE_MARKER: &str = "<!-- rex:codebase -->";
 
 const CODEBASE_SECTION_BODY: &str = "\
@@ -25,6 +26,14 @@ Run one of these commands before you search the tree by hand. Each one prints a 
 - `rex codebase --rust-only --with-context`: the Rust modules and what each one is for. Start here in a Rust crate.
 
 Add `--for-human` to write the tree to `CODEBASE.md` instead of printing it, for example `rex codebase --for-human --rust-only --with-context`.
+";
+
+const SMELLS_SECTION_BODY: &str = "\
+## Code smells
+
+Run this command to find each known problem that was flagged and left in the code. It reads every `.rs` file and skips the files that git ignores.
+
+- `rex smells`: one `path:line` for each `SMELL` flag comment in the Rust files, then the count of them all.
 ";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -59,9 +68,9 @@ impl Vendor {
 /// given vendor's dot-directory. A file already present on disk is left
 /// untouched; only missing files are written.
 ///
-/// Then make sure `cwd/AGENTS.md` has the codebase-map section: create the
-/// file if it is missing, put the section above the existing text if it has
-/// no section yet, and leave the file alone if it does.
+/// Then make sure `cwd/AGENTS.md` has the rex sections (codebase map, code
+/// smells): create the file if it is missing, put the sections above the
+/// existing text if it has none yet, and leave the file alone if it does.
 ///
 /// # Errors
 /// [`RexError::Io`] if a parent directory or file cannot be created or written,
@@ -93,7 +102,7 @@ pub fn run(cwd: &Path, vendor: Vendor) -> Result<(), RexError> {
 
     println!("rex skills: {written} written, {skipped} skipped");
 
-    match ensure_codebase_section(cwd)? {
+    match ensure_rex_sections(cwd)? {
         AgentsMdChange::Created => println!("rex skills: {AGENTS_FILENAME} created"),
         AgentsMdChange::Updated => println!("rex skills: {AGENTS_FILENAME} updated"),
         AgentsMdChange::Unchanged => {}
@@ -101,7 +110,7 @@ pub fn run(cwd: &Path, vendor: Vendor) -> Result<(), RexError> {
     Ok(())
 }
 
-fn ensure_codebase_section(cwd: &Path) -> Result<AgentsMdChange, RexError> {
+fn ensure_rex_sections(cwd: &Path) -> Result<AgentsMdChange, RexError> {
     let path = cwd.join(AGENTS_FILENAME);
 
     // The file is read as bytes because a file that is not valid UTF-8 must
@@ -112,7 +121,8 @@ fn ensure_codebase_section(cwd: &Path) -> Result<AgentsMdChange, RexError> {
         Err(source) => return Err(RexError::Io { path, source }),
     };
 
-    let mut contents = format!("{CODEBASE_MARKER}\n{CODEBASE_SECTION_BODY}").into_bytes();
+    let mut contents =
+        format!("{CODEBASE_MARKER}\n{CODEBASE_SECTION_BODY}\n{SMELLS_SECTION_BODY}").into_bytes();
     let change = match existing {
         None => AgentsMdChange::Created,
         Some(old) if contains_marker(&old) => return Ok(AgentsMdChange::Unchanged),

@@ -11,6 +11,7 @@ fn commands_lists_every_subcommand() {
     let stdout = String::from_utf8(assert.get_output().stdout.clone()).expect("utf8 stdout");
     assert!(stdout.contains("skills"));
     assert!(stdout.contains("codebase"));
+    assert!(stdout.contains("smells"));
     assert!(stdout.contains("commands"));
 }
 
@@ -25,5 +26,6 @@ fn help_lists_every_subcommand() {
     let stdout = String::from_utf8(assert.get_output().stdout.clone()).expect("utf8 stdout");
     assert!(stdout.contains("skills"));
     assert!(stdout.contains("codebase"));
+    assert!(stdout.contains("smells"));
     assert!(stdout.contains("commands"));
 }

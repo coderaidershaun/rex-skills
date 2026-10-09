@@ -6,6 +6,7 @@ use clap::{CommandFactory, Parser, Subcommand};
 use rex_skills::commands::codebase;
 use rex_skills::commands::commands;
 use rex_skills::commands::skills::{self, Vendor};
+use rex_skills::commands::smells;
 
 #[derive(Parser)]
 #[command(
@@ -31,6 +32,9 @@ enum Command {
     /// Print a tree outline of the working directory.
     Codebase(codebase::CodebaseOptions),
 
+    /// List every `SMELL` flag comment in the Rust files as `path:line`, then the count.
+    Smells,
+
     /// List every available command with its full invocation path and description.
     Commands,
 }
@@ -45,6 +49,9 @@ fn main() -> Result<()> {
         }
         Command::Codebase(options) => {
             codebase::run(&cwd, options).context("rex codebase failed")?;
+        }
+        Command::Smells => {
+            smells::run(&cwd).context("rex smells failed")?;
         }
         Command::Commands => {
             commands::run(&Cli::command());

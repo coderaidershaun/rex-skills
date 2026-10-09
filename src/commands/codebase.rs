@@ -3,11 +3,11 @@
 //! walks.
 
 use std::fs::{self, File};
-use std::io::{self, BufRead, BufReader, ErrorKind, Write};
+use std::io::{BufRead, BufReader};
 use std::path::Path;
 
-use ignore::WalkBuilder;
-
+use super::stdout::print_to_stdout;
+use super::walk::visible_entries;
 use crate::error::RexError;
 
 const OUTPUT_FILENAME: &str = "CODEBASE.md";
@@ -66,7 +66,7 @@ pub fn run(cwd: &Path, options: CodebaseOptions) -> Result<(), RexError> {
     if options.is_for_human {
         write_markdown_file(cwd, &tree, options)
     } else {
-        print_tree(&tree)
+        print_to_stdout(&tree)
     }
 }
 
@@ -84,42 +84,14 @@ fn write_markdown_file(cwd: &Path, tree: &str, options: CodebaseOptions) -> Resu
     Ok(())
 }
 
-fn print_tree(tree: &str) -> Result<(), RexError> {
-    let mut stdout = io::stdout().lock();
-    let written = stdout
-        .write_all(tree.as_bytes())
-        .and_then(|()| stdout.flush());
-
-    // A reader such as `head` closing the pipe early is a normal way to use
-    // this command, not a failure.
-    match written {
-        Err(source) if source.kind() == ErrorKind::BrokenPipe => Ok(()),
-        other => other.map_err(|source| RexError::Stdout { source }),
-    }
-}
-
 fn render_tree(cwd: &Path, options: CodebaseOptions) -> Result<String, RexError> {
-    // require_git(false) so the command works in non-git dirs (tests, fresh
-    // checkouts). Without it, `ignore` only honors .gitignore inside a git repo.
-    let walker = WalkBuilder::new(cwd)
-        .hidden(true)
-        .git_ignore(true)
-        .git_exclude(true)
-        .git_global(true)
-        .require_git(false)
-        .sort_by_file_name(|a, b| a.cmp(b))
-        .build();
-
     let mut out = String::new();
     // With --rust-only a directory line waits here until a Rust file shows
     // up below it, so directories with no Rust files never print.
     let mut pending_dirs: Vec<(usize, String)> = Vec::new();
 
-    for entry in walker {
-        let entry = entry.map_err(|source| RexError::Walk {
-            path: cwd.to_path_buf(),
-            source,
-        })?;
+    for entry in visible_entries(cwd) {
+        let entry = entry?;
 
         let depth = entry.depth();
         if depth == 0 {
