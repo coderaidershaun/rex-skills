@@ -1,85 +1,143 @@
-//! Installs a git pre-commit hook that runs trivy, so leaked secrets and
-//! misconfigured files are caught before they are committed.
+//! Writes a `.pre-commit-config.yaml` for the pre-commit framework and
+//! installs its git hooks, so leaked secrets, vulnerable dependencies,
+//! misconfigured files, and unformatted or warning-laden Rust are caught
+//! before they are committed or pushed.
 
 use std::fs;
+use std::io::ErrorKind;
 use std::path::Path;
+use std::process::Command;
 
 use super::file_change::contains_marker;
 use crate::error::RexError;
 
-pub(super) const HOOK_PATH: &str = ".git/hooks/pre-commit";
+pub(super) const CONFIG_FILENAME: &str = ".pre-commit-config.yaml";
 
-/// The second line of the hook. Finding it means rex wrote the hook, so a
-/// second run has nothing to do.
-const HOOK_MARKER: &str = "# rex:pre-commit";
+/// The command that turns the config into git hooks. Printed as a hint
+/// when the tool is missing, so the text is kept in one place.
+pub(super) const INSTALL_COMMAND: &str =
+    "pre-commit install --hook-type pre-commit --hook-type pre-push";
 
-/// A missing trivy fails the commit on purpose: a security hook that passes
-/// in silence is worse than no hook.
-const HOOK_SCRIPT: &str = "\
-#!/bin/sh
+/// The first line of the config. Finding it means rex wrote the file, so a
+/// second run has nothing to say about it.
+const CONFIG_MARKER: &str = "# rex:pre-commit";
+
+const CONFIG: &str = "\
 # rex:pre-commit
-# Installed by `rex skills`. Runs trivy on the working tree before each commit.
-if ! command -v trivy >/dev/null 2>&1; then
-  echo \"pre-commit: trivy is not installed; see https://trivy.dev/latest/getting-started/installation/\" >&2
-  exit 1
-fi
-exec trivy fs --scanners secret,misconfig --exit-code 1 --quiet --skip-dirs target,node_modules,.git .
+# Installed by `rex skills`. Needs pre-commit, gitleaks and trivy on PATH.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-yaml
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  - repo: local
+    hooks:
+      - id: gitleaks
+        name: gitleaks
+        entry: gitleaks git --pre-commit --staged --redact --verbose
+        language: system
+        pass_filenames: false
+      - id: trivy
+        name: trivy secrets, vulnerabilities and misconfigurations
+        entry: trivy fs --timeout 15m --quiet --skip-version-check --scanners secret,vuln,misconfig --severity HIGH,CRITICAL --exit-code 1 --skip-dirs target,node_modules,.claude,.codex,.agents --skip-files .env .
+        language: system
+        pass_filenames: false
+      - id: cargo-fmt
+        name: cargo fmt
+        entry: cargo fmt --all -- --check
+        language: system
+        types: [rust]
+        pass_filenames: false
+      - id: cargo-clippy
+        name: cargo clippy
+        entry: cargo clippy --workspace --all-targets -- -D warnings
+        language: system
+        types: [rust]
+        pass_filenames: false
+      - id: cargo-test
+        name: cargo test
+        entry: cargo test --workspace
+        language: system
+        types: [rust]
+        pass_filenames: false
+        stages: [pre-push]
 ";
 
-/// The outcome of trying to install the hook.
+/// The outcome of making sure the config file is there.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum ConfigWrite {
+    Created,
+    /// Rex wrote the config on an earlier run.
+    AlreadyWritten,
+    /// Someone else's config is there. It is never replaced.
+    SkippedExists,
+}
+
+/// The outcome of asking the pre-commit tool to install its hooks.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum HookInstall {
     Installed,
-    /// Rex wrote the hook on an earlier run.
-    AlreadyInstalled,
-    /// Someone else's hook is there. It is never replaced.
-    SkippedExists,
     /// `cwd/.git` is not a directory: not a repository, or a worktree or
     /// submodule whose `.git` is a file.
     SkippedNoGitDir,
+    /// `pre-commit` is not on PATH.
+    SkippedNoTool,
 }
 
-/// Write the trivy hook to `cwd/.git/hooks/pre-commit` and make it executable,
-/// unless there is no `.git` directory or a hook is already there.
-pub(super) fn install_hook(cwd: &Path) -> Result<HookInstall, RexError> {
+/// Write `cwd/.pre-commit-config.yaml` unless a config is already there.
+pub(super) fn ensure_config(cwd: &Path) -> Result<ConfigWrite, RexError> {
+    let path = cwd.join(CONFIG_FILENAME);
+    match fs::read(&path) {
+        Ok(existing) if contains_marker(&existing, CONFIG_MARKER) => {
+            return Ok(ConfigWrite::AlreadyWritten);
+        }
+        Ok(_) => return Ok(ConfigWrite::SkippedExists),
+        Err(source) if source.kind() == ErrorKind::NotFound => {}
+        Err(source) => return Err(RexError::Io { path, source }),
+    }
+    fs::write(&path, CONFIG).map_err(|source| RexError::Io { path, source })?;
+    Ok(ConfigWrite::Created)
+}
+
+/// Run the pre-commit tool so the config becomes real git hooks. Its own
+/// output is not shown; a non-zero exit is an error.
+///
+/// # Errors
+/// [`RexError::Io`] if the tool cannot be started for a reason other than
+/// being missing, and [`RexError::PreCommitInstall`] if it exits non-zero.
+pub(super) fn install_hooks(cwd: &Path) -> Result<HookInstall, RexError> {
     if !cwd.join(".git").is_dir() {
         return Ok(HookInstall::SkippedNoGitDir);
     }
 
-    let path = cwd.join(HOOK_PATH);
-    if let Ok(existing) = fs::read(&path) {
-        return Ok(if contains_marker(&existing, HOOK_MARKER) {
-            HookInstall::AlreadyInstalled
-        } else {
-            HookInstall::SkippedExists
+    let mut parts = INSTALL_COMMAND.split(' ');
+    let tool = parts.next().unwrap_or_default();
+    let output = match Command::new(tool).args(parts).current_dir(cwd).output() {
+        Ok(output) => output,
+        Err(source) if source.kind() == ErrorKind::NotFound => {
+            return Ok(HookInstall::SkippedNoTool);
+        }
+        Err(source) => {
+            return Err(RexError::Io {
+                path: cwd.to_path_buf(),
+                source,
+            });
+        }
+    };
+
+    if !output.status.success() {
+        return Err(RexError::PreCommitInstall {
+            status: output.status,
+            stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
         });
     }
-
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(|source| RexError::Io {
-            path: parent.to_path_buf(),
-            source,
-        })?;
-    }
-    fs::write(&path, HOOK_SCRIPT).map_err(|source| RexError::Io {
-        path: path.clone(),
-        source,
-    })?;
-    make_executable(&path)?;
     Ok(HookInstall::Installed)
-}
-
-#[cfg(unix)]
-fn make_executable(path: &Path) -> Result<(), RexError> {
-    use std::os::unix::fs::PermissionsExt;
-    fs::set_permissions(path, fs::Permissions::from_mode(0o755)).map_err(|source| RexError::Io {
-        path: path.to_path_buf(),
-        source,
-    })
-}
-
-// Git on Windows runs hooks through sh, so no mode bit is needed there.
-#[cfg(not(unix))]
-fn make_executable(_path: &Path) -> Result<(), RexError> {
-    Ok(())
 }

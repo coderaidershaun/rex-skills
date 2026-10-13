@@ -1,7 +1,7 @@
 //! Installs the embedded skill bundle into the current working directory,
 //! points agents at the `rex codebase` and `rex smells` commands through
 //! `AGENTS.md`, keeps the installed files out of git through `.gitignore`,
-//! and installs a trivy pre-commit hook.
+//! and sets up pre-commit hooks (gitleaks, trivy, cargo fmt, clippy, test).
 
 mod agents_md;
 mod file_change;
@@ -14,7 +14,7 @@ use std::path::Path;
 use crate::bundle;
 use crate::error::RexError;
 use file_change::FileChange;
-use pre_commit::HookInstall;
+use pre_commit::{ConfigWrite, HookInstall};
 
 /// Which agent tool the skill bundle is installed for. Each vendor gets the
 /// same content tree under its own dot-directory.
@@ -42,12 +42,14 @@ impl Vendor {
 /// untouched; only missing files are written.
 ///
 /// Then make sure `cwd/AGENTS.md` has the rex sections, `cwd/.gitignore`
-/// ignores the installed skill files, and `cwd/.git/hooks/pre-commit` runs
-/// trivy. Each of those is added once and an existing file is never replaced.
+/// ignores the installed skill files, and `cwd/.pre-commit-config.yaml` is
+/// there, and run `pre-commit install` when the tool is on PATH. Each file is
+/// added once and an existing file is never replaced.
 ///
 /// # Errors
 /// [`RexError::Io`] if a parent directory or file cannot be created or written,
-/// or if `AGENTS.md` or `.gitignore` cannot be read or written.
+/// or if `AGENTS.md`, `.gitignore` or the pre-commit config cannot be read or
+/// written; [`RexError::PreCommitInstall`] if `pre-commit install` fails.
 pub fn run(cwd: &Path, vendor: Vendor) -> Result<(), RexError> {
     let target_root = cwd.join(vendor.dir_name());
     let mut written = 0u32;
@@ -84,12 +86,22 @@ pub fn run(cwd: &Path, vendor: Vendor) -> Result<(), RexError> {
         gitignore::ensure_ignore_block(cwd, vendor)?,
     );
 
-    let hook = pre_commit::HOOK_PATH;
-    match pre_commit::install_hook(cwd)? {
-        HookInstall::Installed => println!("rex skills: {hook} installed"),
-        HookInstall::AlreadyInstalled => {}
-        HookInstall::SkippedExists => println!("rex skills: {hook} skipped (already exists)"),
-        HookInstall::SkippedNoGitDir => println!("rex skills: {hook} skipped (no .git directory)"),
+    let config = pre_commit::CONFIG_FILENAME;
+    match pre_commit::ensure_config(cwd)? {
+        ConfigWrite::Created => println!("rex skills: {config} created"),
+        ConfigWrite::AlreadyWritten => {}
+        ConfigWrite::SkippedExists => println!("rex skills: {config} skipped (already exists)"),
+    }
+
+    let install = pre_commit::INSTALL_COMMAND;
+    match pre_commit::install_hooks(cwd)? {
+        HookInstall::Installed => println!("rex skills: pre-commit hooks installed"),
+        HookInstall::SkippedNoGitDir => {
+            println!("rex skills: pre-commit hooks skipped (no .git directory)");
+        }
+        HookInstall::SkippedNoTool => println!(
+            "rex skills: pre-commit hooks skipped (pre-commit not found; install it, then run: {install})"
+        ),
     }
     Ok(())
 }

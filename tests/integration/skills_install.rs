@@ -32,7 +32,7 @@ fn fresh_install_writes_every_bundle_file() {
     assert_eq!(
         stdout,
         format!(
-            "rex skills: {n} written, 0 skipped\nrex skills: AGENTS.md created\nrex skills: .gitignore created\nrex skills: .git/hooks/pre-commit skipped (no .git directory)\n"
+            "rex skills: {n} written, 0 skipped\nrex skills: AGENTS.md created\nrex skills: .gitignore created\nrex skills: .pre-commit-config.yaml created\nrex skills: pre-commit hooks skipped (no .git directory)\n"
         )
     );
 
@@ -67,7 +67,7 @@ fn second_run_writes_nothing() {
     assert_eq!(
         stdout,
         format!(
-            "rex skills: 0 written, {n} skipped\nrex skills: .git/hooks/pre-commit skipped (no .git directory)\n"
+            "rex skills: 0 written, {n} skipped\nrex skills: pre-commit hooks skipped (no .git directory)\n"
         )
     );
 
@@ -103,7 +103,7 @@ fn existing_modified_file_is_never_touched() {
     assert_eq!(
         stdout,
         format!(
-            "rex skills: {} written, 1 skipped\nrex skills: AGENTS.md created\nrex skills: .gitignore created\nrex skills: .git/hooks/pre-commit skipped (no .git directory)\n",
+            "rex skills: {} written, 1 skipped\nrex skills: AGENTS.md created\nrex skills: .gitignore created\nrex skills: .pre-commit-config.yaml created\nrex skills: pre-commit hooks skipped (no .git directory)\n",
             n - 1
         )
     );
@@ -137,7 +137,7 @@ fn missing_file_is_backfilled() {
     assert_eq!(
         stdout,
         format!(
-            "rex skills: 1 written, {} skipped\nrex skills: .git/hooks/pre-commit skipped (no .git directory)\n",
+            "rex skills: 1 written, {} skipped\nrex skills: pre-commit hooks skipped (no .git directory)\n",
             n - 1
         )
     );
@@ -207,7 +207,7 @@ fn init_alias_installs_like_skills() {
     assert_eq!(
         stdout,
         format!(
-            "rex skills: {n} written, 0 skipped\nrex skills: AGENTS.md created\nrex skills: .gitignore created\nrex skills: .git/hooks/pre-commit skipped (no .git directory)\n"
+            "rex skills: {n} written, 0 skipped\nrex skills: AGENTS.md created\nrex skills: .gitignore created\nrex skills: .pre-commit-config.yaml created\nrex skills: pre-commit hooks skipped (no .git directory)\n"
         )
     );
 
@@ -354,88 +354,135 @@ fn vendor_codex_gitignore_block_names_dot_codex() {
     );
 }
 
-#[test]
-fn pre_commit_hook_is_installed_when_git_dir_exists() {
-    let dir = tempdir().expect("create tempdir");
-    fs::create_dir_all(dir.path().join(".git/hooks")).expect("create .git/hooks");
-
-    let assert = Command::cargo_bin("rex")
-        .expect("find rex binary")
-        .arg("skills")
-        .current_dir(dir.path())
-        .assert()
-        .success();
-
-    let stdout = String::from_utf8(assert.get_output().stdout.clone()).expect("utf8 stdout");
-    assert!(stdout.ends_with("rex skills: .git/hooks/pre-commit installed\n"));
-
-    let hook_path = dir.path().join(".git/hooks/pre-commit");
-    let hook = fs::read_to_string(&hook_path).expect("read pre-commit hook");
-    assert!(hook.starts_with("#!/bin/sh\n# rex:pre-commit\n"));
-    assert!(hook.contains("trivy fs --scanners secret,misconfig --exit-code 1"));
-
+/// Puts a fake `pre-commit` on PATH that records its arguments, so the test
+/// checks what rex runs without needing the real tool.
+fn fake_pre_commit(dir: &Path) -> (String, std::path::PathBuf) {
+    let bin = dir.join("fakebin");
+    fs::create_dir_all(&bin).expect("create fakebin");
+    let args_file = bin.join("args");
+    let script = format!(
+        "#!/bin/sh\nprintf '%s' \"$*\" > '{}'\n",
+        args_file.display()
+    );
+    let tool = bin.join("pre-commit");
+    fs::write(&tool, script).expect("write fake pre-commit");
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        let mode = fs::metadata(&hook_path)
-            .expect("hook metadata")
-            .permissions()
-            .mode();
-        assert!(
-            mode & 0o111 != 0,
-            "hook must be executable, mode was {mode:o}"
-        );
+        fs::set_permissions(&tool, fs::Permissions::from_mode(0o755)).expect("chmod fake tool");
     }
+    (format!("{}:/usr/bin:/bin", bin.display()), args_file)
 }
 
 #[test]
-fn existing_pre_commit_hook_is_never_touched() {
+fn pre_commit_config_is_created_and_hooks_installed() {
     let dir = tempdir().expect("create tempdir");
     fs::create_dir_all(dir.path().join(".git/hooks")).expect("create .git/hooks");
-    fs::write(
-        dir.path().join(".git/hooks/pre-commit"),
-        b"sentinel content",
-    )
-    .expect("write sentinel hook");
+    let (path_env, args_file) = fake_pre_commit(dir.path());
 
     let assert = Command::cargo_bin("rex")
         .expect("find rex binary")
         .arg("skills")
+        .env("PATH", path_env)
         .current_dir(dir.path())
         .assert()
         .success();
 
     let stdout = String::from_utf8(assert.get_output().stdout.clone()).expect("utf8 stdout");
-    assert!(stdout.ends_with("rex skills: .git/hooks/pre-commit skipped (already exists)\n"));
+    assert!(stdout.ends_with(
+        "rex skills: .pre-commit-config.yaml created\nrex skills: pre-commit hooks installed\n"
+    ));
 
-    let hook = fs::read(dir.path().join(".git/hooks/pre-commit")).expect("read hook");
-    assert_eq!(hook, b"sentinel content");
+    let config = fs::read_to_string(dir.path().join(".pre-commit-config.yaml"))
+        .expect("read .pre-commit-config.yaml");
+    assert!(config.starts_with("# rex:pre-commit\n"));
+    assert!(config.contains("repo: https://github.com/pre-commit/pre-commit-hooks\n"));
+    assert!(config.contains("entry: gitleaks git --pre-commit --staged --redact --verbose\n"));
+    assert!(
+        config.contains("--scanners secret,vuln,misconfig --severity HIGH,CRITICAL --exit-code 1")
+    );
+    assert!(config.contains("stages: [pre-push]\n"));
+
+    let args = fs::read_to_string(args_file).expect("fake pre-commit must have run");
+    assert_eq!(args, "install --hook-type pre-commit --hook-type pre-push");
 }
 
 #[test]
-fn second_run_leaves_pre_commit_hook_alone() {
+fn existing_pre_commit_config_is_never_touched() {
     let dir = tempdir().expect("create tempdir");
     fs::create_dir_all(dir.path().join(".git/hooks")).expect("create .git/hooks");
+    let (path_env, _) = fake_pre_commit(dir.path());
+    fs::write(
+        dir.path().join(".pre-commit-config.yaml"),
+        b"sentinel content",
+    )
+    .expect("write sentinel config");
+
+    let assert = Command::cargo_bin("rex")
+        .expect("find rex binary")
+        .arg("skills")
+        .env("PATH", path_env)
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    let stdout = String::from_utf8(assert.get_output().stdout.clone()).expect("utf8 stdout");
+    assert!(stdout.contains("rex skills: .pre-commit-config.yaml skipped (already exists)\n"));
+
+    let config = fs::read(dir.path().join(".pre-commit-config.yaml")).expect("read config");
+    assert_eq!(config, b"sentinel content");
+}
+
+#[test]
+fn second_run_leaves_pre_commit_config_alone() {
+    let dir = tempdir().expect("create tempdir");
+    fs::create_dir_all(dir.path().join(".git/hooks")).expect("create .git/hooks");
+    let (path_env, _) = fake_pre_commit(dir.path());
 
     Command::cargo_bin("rex")
         .expect("find rex binary")
         .arg("skills")
+        .env("PATH", path_env.clone())
         .current_dir(dir.path())
         .assert()
         .success();
 
-    let before = fs::read(dir.path().join(".git/hooks/pre-commit")).expect("read hook");
+    let before = fs::read(dir.path().join(".pre-commit-config.yaml")).expect("read config");
 
     let second = Command::cargo_bin("rex")
         .expect("find rex binary")
         .arg("skills")
+        .env("PATH", path_env)
         .current_dir(dir.path())
         .assert()
         .success();
 
     let stdout = String::from_utf8(second.get_output().stdout.clone()).expect("utf8 stdout");
-    assert!(!stdout.contains("pre-commit"));
+    assert!(!stdout.contains(".pre-commit-config.yaml"));
+    assert!(stdout.ends_with("rex skills: pre-commit hooks installed\n"));
 
-    let after = fs::read(dir.path().join(".git/hooks/pre-commit")).expect("read hook");
+    let after = fs::read(dir.path().join(".pre-commit-config.yaml")).expect("read config");
     assert_eq!(before, after);
+}
+
+#[test]
+fn missing_pre_commit_tool_prints_the_install_command() {
+    let dir = tempdir().expect("create tempdir");
+    fs::create_dir_all(dir.path().join(".git/hooks")).expect("create .git/hooks");
+    let empty_bin = dir.path().join("emptybin");
+    fs::create_dir_all(&empty_bin).expect("create emptybin");
+
+    let assert = Command::cargo_bin("rex")
+        .expect("find rex binary")
+        .arg("skills")
+        .env("PATH", empty_bin.as_os_str())
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    let stdout = String::from_utf8(assert.get_output().stdout.clone()).expect("utf8 stdout");
+    assert!(stdout.ends_with(
+        "rex skills: pre-commit hooks skipped (pre-commit not found; install it, then run: pre-commit install --hook-type pre-commit --hook-type pre-push)\n"
+    ));
+    assert!(dir.path().join(".pre-commit-config.yaml").is_file());
 }

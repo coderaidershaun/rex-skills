@@ -20,6 +20,12 @@ pub enum RexError {
         source: ignore::Error,
     },
 
+    #[error("`pre-commit install` exited with {status}: {stderr}")]
+    PreCommitInstall {
+        status: std::process::ExitStatus,
+        stderr: String,
+    },
+
     #[error("failed to write to stdout")]
     Stdout {
         #[source]

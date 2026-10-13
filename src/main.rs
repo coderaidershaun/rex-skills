@@ -21,7 +21,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Install the rex agent skill bundle, add rex sections to AGENTS.md, a .gitignore block, and a trivy pre-commit hook.
+    /// Install the rex agent skill bundle, add rex sections to AGENTS.md, a .gitignore block, and pre-commit hooks.
     #[command(visible_alias = "init")]
     Skills {
         /// Which agent tool to install the bundle for.
