@@ -12,7 +12,7 @@ description: >
   code", "engineer and auditor", or "team lead". Use it also for each
   implementation task that is not small.
 disable-model-invocation: false
-user-invocable: false
+user-invocable: true
 ---
 
 # Code Lead
@@ -76,12 +76,12 @@ User is usually an agent that waits for you. It reads first line of your message
 
 End turn only in one of these 4 ways. First line = STATUS line.
 
-| First line             | When                                                           | Then give |
-| ---------------------- | -------------------------------------------------------------- | --------- |
-| `STATUS: DONE`         | Final gate passed.                                             | REPORT (see Final gate). |
-| `STATUS: QUESTIONS`    | Task + code have no answer AND answer changes what you build.  | `QUESTIONS:` block. Number each question. Give options + option you recommend. |
-| `STATUS: BLOCKED`      | Gate still fails after 3 rounds, or work cannot continue.      | Cause, what you tried, what you need. |
-| `STATUS: NO-SUBAGENTS` | You cannot start subagents.                                    | Nothing more. Never do all stages yourself. |
+| First line             | When                                                          | Then give                                                                      |
+| ---------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `STATUS: DONE`         | Final gate passed.                                            | REPORT (see Final gate).                                                       |
+| `STATUS: QUESTIONS`    | Task + code have no answer AND answer changes what you build. | `QUESTIONS:` block. Number each question. Give options + option you recommend. |
+| `STATUS: BLOCKED`      | Gate still fails after 3 rounds, or work cannot continue.     | Cause, what you tried, what you need.                                          |
+| `STATUS: NO-SUBAGENTS` | You cannot start subagents.                                   | Nothing more. Never do all stages yourself.                                    |
 
 - [ ] Never end turn with no STATUS line.
 - [ ] Never end turn while a subagent still operates.
@@ -101,12 +101,12 @@ End turn only in one of these 4 ways. First line = STATUS line.
 
 ## Subagents
 
-| Stage      | Model                    | Skills |
-| ---------- | ------------------------ | ------ |
-| 0b Advisor | `opus`, or model of lead | `rex-code-philosophy`. Add `rex-code-ergonomics` IF plan changes an API. |
-| 1 Engineer | `sonnet`                 | Core skills, `rex-code-tdd`, `rex-code-error-writing`, `rex-code-external-libraries`, `rex-code-tests-unit-testing`. Add test-lane skill only IF its lane on test list. |
+| Stage      | Model                    | Skills                                                                                                                                                                                                                      |
+| ---------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0b Advisor | `opus`, or model of lead | `rex-code-philosophy`. Add `rex-code-ergonomics` IF plan changes an API.                                                                                                                                                    |
+| 1 Engineer | `sonnet`                 | Core skills, `rex-code-tdd`, `rex-code-error-writing`, `rex-code-external-libraries`, `rex-code-tests-unit-testing`. Add test-lane skill only IF its lane on test list.                                                     |
 | 2 Auditor  | `opus`, or model of lead | Core skills, `rex-code-smells`, `rex-code-improve-codebase-architecture`, `rex-code-error-writing`, `rex-code-tdd`, `rex-code-tests-unit-testing`, `rex-code-tests-integration-testing`, `rex-code-tests-fitness-functions` |
-| 3 Cleaner  | `opus` always            | Core skills, `rex-code-smells`, `rex-code-tests-unit-testing`, `rex-code-tests-fitness-functions` |
+| 3 Cleaner  | `opus` always            | Core skills, `rex-code-smells`, `rex-code-tests-unit-testing`, `rex-code-tests-fitness-functions`                                                                                                                           |
 
 - Core skills: `rex-code-philosophy`, `rex-code-ergonomics`, `rex-code-commenting`.
 - Test-lane skills: `rex-code-tests-integration-testing`, `rex-code-tests-contract-seams`, `rex-code-tests-fitness-functions`.
