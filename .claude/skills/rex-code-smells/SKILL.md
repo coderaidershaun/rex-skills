@@ -39,7 +39,7 @@ Severity, three only:
 | noise words | type/fn names containing `data\|info\|manager\|helper\|util\|item\|thing` | does name say what it IS? |
 | `get_` prefix | `grep -rn 'fn get_'` | plain getter → field name; `get` only for indexed access |
 | stuttering | `module::ModuleThing` — grep module name inside its own files | path already carries context |
-| unit-less quantity | `timeout\|delay\|size\|interval\|duration` params w/o unit suffix | project law: `_ts_us`, `_ms`, `_bytes` |
+| unit-less quantity | `timeout\|delay\|size\|interval\|duration` params w/o unit suffix | the unit belongs in the name: `_ms`, `_us`, `_bytes` |
 | conversion prefix lies | `fn as_` that allocates, `fn to_` that's free, `fn into_` taking `&self` | `as_`=free view, `to_`=work, `into_`=consumes. Callers infer COST from prefix |
 | synonym drift | same concept named `order`/`record`/`entry` across fns | one concept one name, greppability |
 | primitive obsession | pub fns taking 2+ bare `u64`/`i64`/`String` | swap-safe? `transfer(from: u64, to: u64)` compiles wrong — newtype |
@@ -83,8 +83,8 @@ Brittle = looks fine, shatters on small perturbation. The signals:
 | ordering dependency | `init` flags, `assert!(ready)`, "call X before Y" in docs | sequence not enforced by types — one reorder away from breakage |
 | data w/o control flow | field with no writer, method with no caller — both compile green | seam half-wired; grep BOTH sides of every seam |
 | stringly-typed seam | `&str` params matched against literals deep inside | typo compiles; enum/newtype at boundary doesn't |
-| float in state logic | `f64` key, `==` on floats, float money accumulator | project §4 law — exact integers only |
-| wall clock in state transition | `now()`/`Instant::now` deciding state, not just stamping | replay diverges — project §2 law |
+| float in state logic | `f64` key, `==` on floats, float money accumulator | rounding error drifts the state — use integers or a decimal type for money and counts |
+| wall clock in state transition | `now()`/`Instant::now` deciding state, not just stamping | a replay or a test gives a different result — pass the time in |
 | brittle tests | assert on `Debug` format, exact multi-line strings, HashMap iteration order, `sleep` | harmless refactor turns suite red → red gets ignored |
 
 ## Mechanical sweep block
