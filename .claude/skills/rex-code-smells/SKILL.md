@@ -93,8 +93,8 @@ Copy-paste for module/crate scope (adjust path):
 
 ```bash
 P=src/target/module
-# long fns: production line count between fn and closing brace at col 0-4 is approximate — confirm by reading
-awk '/^\s{0,4}(pub )?(async )?fn /{n=FNR; f=$0} /^\s{0,4}\}$/{if(n && FNR-n>50) print FILENAME":"n" ("FNR-n" lines) "f; n=0}' $P/**/*.rs
+# long fns: lines from `fn` to the closing brace with the same indent (tests included) — confirm by reading
+find "$P" -name '*.rs' -exec awk 'FNR==1{n=0} /^ *(pub(\([a-z]+\))? )?(const )?(async )?(unsafe )?fn / && $0 !~ /[;}] *$/ {n=FNR; f=$0; ind=match($0,/[^ ]/)} n && /^ *}$/ && match($0,/[^ ]/)==ind {if (FNR-n>50) print FILENAME":"n" ("FNR-n" lines) "f; n=0}' {} +
 grep -rn '\.unwrap()\|\.expect(' $P --include='*.rs'
 grep -rnE '\b(mgr|cnt|tmp|usr|obj|proc)\b' $P --include='*.rs'
 grep -rn 'fn get_' $P --include='*.rs'
