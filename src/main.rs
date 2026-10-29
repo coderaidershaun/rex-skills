@@ -54,7 +54,7 @@ fn main() -> Result<()> {
             smells::run(&cwd).context("rex smells failed")?;
         }
         Command::Commands => {
-            commands::run(&Cli::command());
+            commands::run(&Cli::command()).context("rex commands failed")?;
         }
     }
 

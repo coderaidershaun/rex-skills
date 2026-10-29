@@ -5,6 +5,15 @@ use std::io::{self, ErrorKind, Write};
 
 use crate::error::RexError;
 
+/// Write `line` to stdout followed by a newline. A closed pipe is handled as
+/// in [`print_to_stdout`].
+///
+/// # Errors
+/// [`RexError::Stdout`] if the line cannot be written.
+pub(super) fn print_line_to_stdout(line: &str) -> Result<(), RexError> {
+    print_to_stdout(&format!("{line}\n"))
+}
+
 /// Write `text` to stdout as it is, with no newline added.
 ///
 /// # Errors

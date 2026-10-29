@@ -6,7 +6,7 @@ use std::fs::{self, File};
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 
-use super::stdout::print_to_stdout;
+use super::stdout::{print_line_to_stdout, print_to_stdout};
 use super::walk::visible_entries;
 use crate::error::RexError;
 
@@ -80,8 +80,7 @@ fn write_markdown_file(cwd: &Path, tree: &str, options: CodebaseOptions) -> Resu
         source,
     })?;
 
-    println!("rex codebase: wrote {}", out.display());
-    Ok(())
+    print_line_to_stdout(&format!("rex codebase: wrote {}", out.display()))
 }
 
 fn render_tree(cwd: &Path, options: CodebaseOptions) -> Result<String, RexError> {

@@ -5,6 +5,9 @@
 
 use clap::Command;
 
+use super::stdout::print_to_stdout;
+use crate::error::RexError;
+
 /// Print every command in `root`'s tree to stdout.
 ///
 /// Output is one line per command, in aligned columns: the full invocation
@@ -12,7 +15,10 @@ use clap::Command;
 ///
 /// Clap's injected `help` subcommand and hidden subcommands are skipped.
 /// The root itself is omitted — only invokable paths appear.
-pub fn run(root: &Command) {
+///
+/// # Errors
+/// [`RexError::Stdout`] if the list cannot be written to stdout.
+pub fn run(root: &Command) -> Result<(), RexError> {
     let root_name = root.get_name();
     let mut entries: Vec<(String, String)> = Vec::new();
 
@@ -22,9 +28,11 @@ pub fn run(root: &Command) {
 
     let max_path_len = entries.iter().map(|(p, _)| p.len()).max().unwrap_or(0);
 
-    for (path, about) in &entries {
-        println!("{path:<width$}  — {about}", width = max_path_len);
-    }
+    let text: String = entries
+        .iter()
+        .map(|(path, about)| format!("{path:<max_path_len$}  — {about}\n"))
+        .collect();
+    print_to_stdout(&text)
 }
 
 fn collect(cmd: &Command, path_parts: &[&str], out: &mut Vec<(String, String)>) {

@@ -11,6 +11,7 @@ mod pre_commit;
 use std::fs;
 use std::path::Path;
 
+use super::stdout::print_line_to_stdout;
 use crate::bundle;
 use crate::error::RexError;
 use file_change::FileChange;
@@ -49,7 +50,8 @@ impl Vendor {
 /// # Errors
 /// [`RexError::Io`] if a parent directory or file cannot be created or written,
 /// or if `AGENTS.md`, `.gitignore` or the pre-commit config cannot be read or
-/// written; [`RexError::PreCommitInstall`] if `pre-commit install` fails.
+/// written; [`RexError::PreCommitInstall`] if `pre-commit install` fails;
+/// [`RexError::Stdout`] if a progress line cannot be written to stdout.
 pub fn run(cwd: &Path, vendor: Vendor) -> Result<(), RexError> {
     let target_root = cwd.join(vendor.dir_name());
     let mut written = 0u32;
@@ -75,41 +77,43 @@ pub fn run(cwd: &Path, vendor: Vendor) -> Result<(), RexError> {
         written += 1;
     }
 
-    println!("rex skills: {written} written, {skipped} skipped");
+    print_line_to_stdout(&format!("rex skills: {written} written, {skipped} skipped"))?;
 
     report_file_change(
         agents_md::AGENTS_FILENAME,
         agents_md::ensure_rex_sections(cwd)?,
-    );
+    )?;
     report_file_change(
         gitignore::GITIGNORE_FILENAME,
         gitignore::ensure_ignore_block(cwd, vendor)?,
-    );
+    )?;
 
     let config = pre_commit::CONFIG_FILENAME;
     match pre_commit::ensure_config(cwd)? {
-        ConfigWrite::Created => println!("rex skills: {config} created"),
+        ConfigWrite::Created => print_line_to_stdout(&format!("rex skills: {config} created"))?,
         ConfigWrite::AlreadyWritten => {}
-        ConfigWrite::SkippedExists => println!("rex skills: {config} skipped (already exists)"),
+        ConfigWrite::SkippedExists => {
+            print_line_to_stdout(&format!("rex skills: {config} skipped (already exists)"))?;
+        }
     }
 
     let install = pre_commit::INSTALL_COMMAND;
     match pre_commit::install_hooks(cwd)? {
-        HookInstall::Installed => println!("rex skills: pre-commit hooks installed"),
+        HookInstall::Installed => print_line_to_stdout("rex skills: pre-commit hooks installed")?,
         HookInstall::SkippedNoGitDir => {
-            println!("rex skills: pre-commit hooks skipped (no .git directory)");
+            print_line_to_stdout("rex skills: pre-commit hooks skipped (no .git directory)")?;
         }
-        HookInstall::SkippedNoTool => println!(
+        HookInstall::SkippedNoTool => print_line_to_stdout(&format!(
             "rex skills: pre-commit hooks skipped (pre-commit not found; install it, then run: {install})"
-        ),
+        ))?,
     }
     Ok(())
 }
 
-fn report_file_change(filename: &str, change: FileChange) {
+fn report_file_change(filename: &str, change: FileChange) -> Result<(), RexError> {
     match change {
-        FileChange::Created => println!("rex skills: {filename} created"),
-        FileChange::Updated => println!("rex skills: {filename} updated"),
-        FileChange::Unchanged => {}
+        FileChange::Created => print_line_to_stdout(&format!("rex skills: {filename} created")),
+        FileChange::Updated => print_line_to_stdout(&format!("rex skills: {filename} updated")),
+        FileChange::Unchanged => Ok(()),
     }
 }
