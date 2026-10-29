@@ -9,5 +9,7 @@ mod skills_install;
 mod skills_update;
 mod smells;
 #[cfg(unix)]
+mod symlinks;
+#[cfg(unix)]
 mod unreadable_paths;
 mod vendor_paths;
