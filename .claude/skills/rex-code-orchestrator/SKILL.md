@@ -385,5 +385,5 @@ Remove watchdog timer. Last action on final tree = build + test run that passes.
 - [ ] Watchdog: each agent you replaced + reason.
 - [ ] Architecture: verdict of each pass, what it changed, open DEFERRED candidates.
 - [ ] Decisions: each ASSUMPTION, first. User must examine these.
-- [ ] Carried forward: SMELL flags that leads reported and did not correct.
+- [ ] Carried forward: SMELL flags that leads reported and did not correct. IF `rex` is on PATH, THEN `rex smells` lists every flag left in the code.
 - [ ] Repo state: commit mode + reason, branch, uncommitted work, and that nothing is pushed.

@@ -93,7 +93,7 @@ Facts first. No advice in this step.
 
 - [ ] `CONTEXT.md` + `docs/adr/` for scope. IF file does not exist, THEN continue.
 - [ ] Document that invocation names: spec, plan, goal. List what next work imports from this code.
-- [ ] `CODEBASE.md`, IF it exists.
+- [ ] `CODEBASE.md`, IF it exists. ELSE IF `rex` is on PATH, THEN run `rex codebase --rust-only --with-context`.
 - [ ] Entry files: `lib.rs`, `main.rs`, `Cargo.toml`.
 
 ### 1.2 Baseline
@@ -218,7 +218,7 @@ Hold Proof outside repo, in scratchpad. Builder agents must not hold it.
 
 - [ ] Snapshot each output that must not change. Example: generated schema, prompt, saved file.
 - [ ] Copy of source with comments removed, for code-only diff.
-- [ ] List of each warning comment + `SMELL:` comment, word for word.
+- [ ] List of each warning comment + `SMELL:` comment, word for word. IF `rex` is on PATH, THEN `rex smells` lists each `SMELL:` comment.
 - [ ] Baseline from 1.2.
 
 ### 4.2 Hand over
