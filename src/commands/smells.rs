@@ -15,7 +15,8 @@ const FLAG_WORD: &[u8] = b"SMELL";
 /// for each `SMELL` flag comment in a Rust file, then the count of them all.
 ///
 /// # Errors
-/// - [`RexError::Walk`] if the directory walk fails (loop, glob, permissions).
+/// - [`RexError::Walk`] if the directory walk fails (loop, glob). A path that
+///   cannot be read is skipped with a warning on stderr.
 /// - [`RexError::Io`] if a Rust file cannot be read.
 /// - [`RexError::Stdout`] if the report cannot be written to stdout.
 pub fn run(cwd: &Path) -> Result<(), RexError> {

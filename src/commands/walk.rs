@@ -1,6 +1,7 @@
 //! Walks the working directory the same way for every command that reads it:
 //! dotfiles and gitignored paths are skipped, and entries come sorted by name.
 
+use std::io::{self, ErrorKind, Write};
 use std::path::Path;
 
 use ignore::{DirEntry, WalkBuilder};
@@ -11,10 +12,13 @@ use crate::error::RexError;
 /// directory comes before what is inside it, and `cwd` itself comes first, at
 /// depth 0.
 ///
+/// A path that cannot be read because of its permissions is skipped, with a
+/// warning on stderr. The rest of the tree is still visited.
+///
 /// # Errors
-/// An item is [`RexError::Walk`] if that step of the walk fails (loop, glob,
-/// permissions). It names the path that failed when the walk reports one, and
-/// `cwd` otherwise.
+/// An item is [`RexError::Walk`] if that step of the walk fails for another
+/// reason (loop, glob). It names the path that failed when the walk reports
+/// one, and `cwd` otherwise.
 pub(super) fn visible_entries(
     cwd: &Path,
 ) -> impl Iterator<Item = Result<DirEntry, RexError>> + use<> {
@@ -30,12 +34,32 @@ pub(super) fn visible_entries(
         .require_git(false)
         .sort_by_file_name(|a, b| a.cmp(b))
         .build()
-        .map(move |entry| {
-            entry.map_err(|source| RexError::Walk {
+        .filter_map(move |entry| match entry {
+            Ok(entry) => Some(Ok(entry)),
+            Err(source) if is_permission_denied(&source) => {
+                warn_skipped(failing_path(&source).unwrap_or(&root));
+                None
+            }
+            Err(source) => Some(Err(RexError::Walk {
                 path: failing_path(&source).map_or_else(|| root.clone(), Path::to_path_buf),
                 source,
-            })
+            })),
         })
+}
+
+fn is_permission_denied(error: &ignore::Error) -> bool {
+    error
+        .io_error()
+        .is_some_and(|io_error| io_error.kind() == ErrorKind::PermissionDenied)
+}
+
+fn warn_skipped(path: &Path) {
+    // A warning that cannot be shown must not stop the walk.
+    let _ = writeln!(
+        io::stderr().lock(),
+        "rex: skipped {}: permission denied",
+        path.display()
+    );
 }
 
 /// The path a walk error is about, when the error holds one.
