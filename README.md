@@ -48,7 +48,7 @@ rex skills --vendor codex    # -> ./.codex
 rex skills --vendor agents   # -> ./.agents
 
 # Print a tree of the current repo (nothing is written to disk).
-# A directory that cannot be read is skipped, with a warning on stderr.
+# A directory or Rust file that cannot be read is skipped, with a warning on stderr.
 rex codebase
 rex codebase --rust-only                  # only .rs files and their directories
 rex codebase --with-context               # add the first `//!` sentence to each .rs line

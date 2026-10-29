@@ -9,7 +9,7 @@ use std::path::Path;
 use ignore::DirEntry;
 
 use super::stdout::{print_line_to_stdout, print_to_stdout};
-use super::walk::visible_entries;
+use super::walk::{skip_if_denied, visible_entries};
 use crate::error::RexError;
 
 const OUTPUT_FILENAME: &str = "CODEBASE.md";
@@ -60,7 +60,8 @@ impl CodebaseOptions {
 /// # Errors
 /// - [`RexError::Walk`] if the directory walk fails (loop, glob). A path that
 ///   cannot be read is skipped with a warning on stderr.
-/// - [`RexError::Io`] if a Rust file cannot be read for its doc comment, or the
+/// - [`RexError::Io`] if a Rust file cannot be read for its doc comment (a file
+///   that is denied is listed without it, with a warning on stderr), or the
 ///   output file cannot be written.
 /// - [`RexError::Stdout`] if the tree cannot be written to stdout.
 pub fn run(cwd: &Path, options: CodebaseOptions) -> Result<(), RexError> {
@@ -163,7 +164,10 @@ fn first_doc_sentence(path: &Path) -> Result<Option<String>, RexError> {
         source,
     };
 
-    let mut reader = BufReader::new(File::open(path).map_err(io_error)?);
+    let Some(file) = skip_if_denied(path, File::open(path))? else {
+        return Ok(None);
+    };
+    let mut reader = BufReader::new(file);
     let mut raw_line = Vec::new();
     let mut text = String::new();
     let mut line_number = 0;
