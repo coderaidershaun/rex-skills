@@ -38,6 +38,10 @@ Claude Code reads `AGENTS.md` only when the project has no `CLAUDE.md`. If you h
 rex skills
 rex init                     # same command, alias
 
+# A skill file that already exists is never replaced, and the summary says how
+# many of them differ from this version. To update them, overwrite those files:
+rex skills --force           # only skill files are replaced; AGENTS.md, .gitignore and your pre-commit config keep their add-once rules
+
 # Install for another vendor. The skill text is rewritten to name that
 # folder, so a path such as .claude/skills/INDEX.md becomes .codex/skills/INDEX.md.
 rex skills --vendor codex    # -> ./.codex

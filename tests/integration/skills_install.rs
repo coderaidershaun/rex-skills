@@ -103,7 +103,7 @@ fn existing_modified_file_is_never_touched() {
     assert_eq!(
         stdout,
         format!(
-            "rex skills: {} written, 1 skipped\nrex skills: AGENTS.md created\nrex skills: .gitignore created\nrex skills: .pre-commit-config.yaml created\nrex skills: pre-commit hooks skipped (no .git directory)\n",
+            "rex skills: {} written, 1 skipped (1 differs from this version; use --force to overwrite)\nrex skills: AGENTS.md created\nrex skills: .gitignore created\nrex skills: .pre-commit-config.yaml created\nrex skills: pre-commit hooks skipped (no .git directory)\n",
             n - 1
         )
     );
