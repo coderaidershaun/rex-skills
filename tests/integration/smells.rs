@@ -63,3 +63,37 @@ fn smells_reports_zero_when_no_flag_exists() {
     let stdout = String::from_utf8(assert.get_output().stdout.clone()).expect("utf8 stdout");
     assert_eq!(stdout, "Code smells: 0\n");
 }
+
+// This fixture holds every construct that can hide a flag from a reader that
+// looks at one line at a time: a quote character, a raw string with a quote
+// inside, and block comments. Line 8 is a string that only looks like a flag.
+#[test]
+fn smells_finds_flags_after_quotes_and_inside_block_comments() {
+    let dir = tempdir().expect("create tempdir");
+    let source = "\
+fn quote() -> char { '\"' } // SMELL: after a quote character
+fn raw() -> &'static str { r#\"a \" b\"# } // SMELL: after a raw string
+/* SMELL: in a block comment */
+/*
+ * SMELL: on a later line of a block comment
+ */
+fn plain() {} // SMELL: control
+const TEXT: &str = \"// SMELL: only text\";
+fn lifetimes<'a>(x: &'a str) -> &'a str { x } // SMELL: after lifetimes
+fn accent() -> char { 'é' } // SMELL: after a multi-byte character
+";
+    fs::write(dir.path().join("a.rs"), source).expect("write a.rs");
+
+    let assert = Command::cargo_bin("rex")
+        .expect("find rex binary")
+        .arg("smells")
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    let stdout = String::from_utf8(assert.get_output().stdout.clone()).expect("utf8 stdout");
+    assert_eq!(
+        stdout,
+        "a.rs:1\na.rs:2\na.rs:3\na.rs:5\na.rs:7\na.rs:9\na.rs:10\nCode smells: 7\n"
+    );
+}
