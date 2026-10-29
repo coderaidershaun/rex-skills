@@ -74,7 +74,7 @@ Unfamiliar → before write code:
 3. **Check breaking changes.** Major version jump (1.x → 2.x) → CHANGELOG. API often shifts silently.
 4. **Run smallest example.** Throwaway `cargo new`. Confirm it compiles + runs as expected.
 
-If still unsure → `rex-plan-spike`. Don't guess.
+If still unsure → ask the user. Don't guess.
 
 ## Add command
 
