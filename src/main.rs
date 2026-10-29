@@ -5,7 +5,7 @@ use clap::{CommandFactory, Parser, Subcommand};
 
 use rex_skills::commands::codebase;
 use rex_skills::commands::commands;
-use rex_skills::commands::skills::{self, Vendor};
+use rex_skills::commands::skills;
 use rex_skills::commands::smells;
 
 #[derive(Parser)]
@@ -23,11 +23,7 @@ struct Cli {
 enum Command {
     /// Install the rex agent skill bundle, add rex sections to AGENTS.md, a .gitignore block, and pre-commit hooks.
     #[command(visible_alias = "init")]
-    Skills {
-        /// Which agent tool to install the bundle for.
-        #[arg(long, value_enum, default_value_t = Vendor::Claude)]
-        vendor: Vendor,
-    },
+    Skills(skills::SkillsOptions),
 
     /// Print a tree outline of the working directory.
     Codebase(codebase::CodebaseOptions),
@@ -44,8 +40,8 @@ fn main() -> Result<()> {
     let cwd = PathBuf::from(".");
 
     match cli.command {
-        Command::Skills { vendor } => {
-            skills::run(&cwd, vendor).context("rex skills failed")?;
+        Command::Skills(options) => {
+            skills::run(&cwd, options).context("rex skills failed")?;
         }
         Command::Codebase(options) => {
             codebase::run(&cwd, options).context("rex codebase failed")?;
