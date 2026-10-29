@@ -149,7 +149,7 @@ IF subagent stops with a question, THEN answer from brief, plan, code. IF no ans
 ## Stage 0 — Lead
 
 - Brief: what to build, constraints, files, "done" criteria.
-- `baseline.md`: output of `git rev-parse HEAD` + `git status --short`. Each difference from baseline = change of this run.
+- `baseline.md`: output of `git rev-parse HEAD` + `git status --short` + `rex smells` (IF `rex` is on PATH). Each difference from baseline = change of this run.
 - IF user gives path of a `baseline.md`, THEN copy that file. Write no new baseline.
 - Plan = HOW: approach + files to change. Task description, feature request, design brief = WHAT. Not a plan.
 - Plan can be in task, in file, or approved earlier in conversation.
@@ -247,7 +247,7 @@ Cleaner instructions:
 Gate:
 
 - [ ] IF last sweep has BLOCK finding, THEN do stage 1 again with that finding.
-- [ ] IF behavior change, deleted flag, or no last sweep, THEN reject work. Start new cleaner to correct it.
+- [ ] IF behavior change, deleted flag (`rex smells` count lower than in `baseline.md`), or no last sweep, THEN reject work. Start new cleaner to correct it.
 
 ## Final gate
 
@@ -256,6 +256,7 @@ Do each check yourself. A subagent report is not proof.
 - [ ] `cargo build` (or project equivalent) passes.
 - [ ] `cargo clippy` gives no new warnings.
 - [ ] All tests pass. All baseline tests there.
+- [ ] `rex smells` count is not lower than in `baseline.md`. IF `rex` is not on PATH OR `baseline.md` has no `rex smells` output, THEN skip this check.
 - [ ] Each added test on test list or has reason. IF not, THEN give it to new auditor.
 - [ ] Final diff read: plan + brief complete, comments plain English, flags there.
 - [ ] Make sure HEAD did not move + nothing is pushed. Exception: commit or push that user asked for.
