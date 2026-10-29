@@ -84,8 +84,11 @@ pub fn run(cwd: &Path, options: SkillsOptions) -> Result<(), RexError> {
 
     let config = pre_commit::CONFIG_FILENAME;
     match pre_commit::ensure_config(cwd)? {
-        ConfigWrite::Created => print_line_to_stdout(&format!("rex skills: {config} created"))?,
-        ConfigWrite::AlreadyWritten => {}
+        ConfigWrite::Created => {
+            print_line_to_stdout(&format!("rex skills: {config} created"))?;
+            pre_commit::warn_about_missing_hook_tools();
+        }
+        ConfigWrite::AlreadyWritten => pre_commit::warn_about_missing_hook_tools(),
         ConfigWrite::SkippedExists => {
             print_line_to_stdout(&format!("rex skills: {config} skipped (already exists)"))?;
         }
