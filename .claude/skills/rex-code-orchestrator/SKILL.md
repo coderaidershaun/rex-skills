@@ -346,6 +346,7 @@ COMMIT mode:
 
 - [ ] One item of feature list, one commit.
 - [ ] IF commit hook fails, THEN it is a finding. Send it to lead. Never use `--no-verify`.
+- [ ] IF hook fails because its program is not installed, THEN it is a MAJOR issue: only the user can install it. Name the program in the final report.
 
 NO-COMMIT mode: no commit. Mark feature `uncommitted` + write each changed path. WORKING TREE line of next lead needs these paths.
 
