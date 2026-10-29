@@ -1,6 +1,6 @@
 ---
 name: rex-code-tests-unit-testing
-description: Hard rules for Rust unit tests. Inline #[cfg(test)] mod tests next to code, TDD scaffold only, delete when contract/integration coverage green. Critical invariants get promoted to fitness functions. Use when writing unit tests, doing TDD, deciding whether to keep/delete a unit test, or user asks "should I unit test this", "TDD this fn", "should I delete this test", "promote to fitness".
+description: 'Hard rules for Rust unit tests. Inline #[cfg(test)] mod tests next to code, TDD scaffold only, delete when contract/integration coverage green. Critical invariants get promoted to fitness functions. Use when writing unit tests, doing TDD, deciding whether to keep/delete a unit test, or user asks "should I unit test this", "TDD this fn", "should I delete this test", "promote to fitness".'
 disable-model-invocation: false
 user-invocable: true
 ---
