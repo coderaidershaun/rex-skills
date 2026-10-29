@@ -53,29 +53,7 @@ impl Vendor {
 /// written; [`RexError::PreCommitInstall`] if `pre-commit install` fails;
 /// [`RexError::Stdout`] if a progress line cannot be written to stdout.
 pub fn run(cwd: &Path, vendor: Vendor) -> Result<(), RexError> {
-    let target_root = cwd.join(vendor.dir_name());
-    let mut written = 0u32;
-    let mut skipped = 0u32;
-
-    for (rel_path, contents) in bundle::walk() {
-        let dest = target_root.join(&rel_path);
-        if dest.exists() {
-            skipped += 1;
-            continue;
-        }
-
-        if let Some(parent) = dest.parent() {
-            fs::create_dir_all(parent).map_err(|source| RexError::Io {
-                path: parent.to_path_buf(),
-                source,
-            })?;
-        }
-        fs::write(&dest, contents).map_err(|source| RexError::Io {
-            path: dest.clone(),
-            source,
-        })?;
-        written += 1;
-    }
+    let InstallCounts { written, skipped } = install_bundle(&cwd.join(vendor.dir_name()))?;
 
     print_line_to_stdout(&format!("rex skills: {written} written, {skipped} skipped"))?;
 
@@ -108,6 +86,40 @@ pub fn run(cwd: &Path, vendor: Vendor) -> Result<(), RexError> {
         ))?,
     }
     Ok(())
+}
+
+/// How many bundle files an install wrote and how many it left alone.
+#[derive(Default)]
+struct InstallCounts {
+    written: u32,
+    skipped: u32,
+}
+
+/// Write each bundle file that is not on disk yet under `target_root`.
+fn install_bundle(target_root: &Path) -> Result<InstallCounts, RexError> {
+    let mut counts = InstallCounts::default();
+
+    for (rel_path, contents) in bundle::walk() {
+        let dest = target_root.join(&rel_path);
+        if dest.exists() {
+            counts.skipped += 1;
+            continue;
+        }
+
+        if let Some(parent) = dest.parent() {
+            fs::create_dir_all(parent).map_err(|source| RexError::Io {
+                path: parent.to_path_buf(),
+                source,
+            })?;
+        }
+        fs::write(&dest, contents).map_err(|source| RexError::Io {
+            path: dest.clone(),
+            source,
+        })?;
+        counts.written += 1;
+    }
+
+    Ok(counts)
 }
 
 fn report_file_change(filename: &str, change: FileChange) -> Result<(), RexError> {
