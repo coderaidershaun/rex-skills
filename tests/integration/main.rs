@@ -6,3 +6,4 @@ mod skills_install;
 mod smells;
 #[cfg(unix)]
 mod unreadable_dir;
+mod vendor_paths;

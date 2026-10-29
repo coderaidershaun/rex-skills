@@ -7,6 +7,7 @@ mod agents_md;
 mod file_change;
 mod gitignore;
 mod pre_commit;
+mod retarget;
 
 use std::fs;
 use std::path::Path;
@@ -53,7 +54,7 @@ impl Vendor {
 /// written; [`RexError::PreCommitInstall`] if `pre-commit install` fails;
 /// [`RexError::Stdout`] if a progress line cannot be written to stdout.
 pub fn run(cwd: &Path, vendor: Vendor) -> Result<(), RexError> {
-    let InstallCounts { written, skipped } = install_bundle(&cwd.join(vendor.dir_name()))?;
+    let InstallCounts { written, skipped } = install_bundle(&cwd.join(vendor.dir_name()), vendor)?;
 
     print_line_to_stdout(&format!("rex skills: {written} written, {skipped} skipped"))?;
 
@@ -95,8 +96,9 @@ struct InstallCounts {
     skipped: u32,
 }
 
-/// Write each bundle file that is not on disk yet under `target_root`.
-fn install_bundle(target_root: &Path) -> Result<InstallCounts, RexError> {
+/// Write each bundle file that is not on disk yet under `target_root`, with
+/// the folder names in its text changed to match `vendor`.
+fn install_bundle(target_root: &Path, vendor: Vendor) -> Result<InstallCounts, RexError> {
     let mut counts = InstallCounts::default();
 
     for (rel_path, contents) in bundle::walk() {
@@ -112,7 +114,7 @@ fn install_bundle(target_root: &Path) -> Result<InstallCounts, RexError> {
                 source,
             })?;
         }
-        fs::write(&dest, contents).map_err(|source| RexError::Io {
+        fs::write(&dest, vendor.retarget(contents)).map_err(|source| RexError::Io {
             path: dest.clone(),
             source,
         })?;
