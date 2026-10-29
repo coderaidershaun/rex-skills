@@ -13,7 +13,8 @@ use crate::error::RexError;
 ///
 /// # Errors
 /// An item is [`RexError::Walk`] if that step of the walk fails (loop, glob,
-/// permissions).
+/// permissions). It names the path that failed when the walk reports one, and
+/// `cwd` otherwise.
 pub(super) fn visible_entries(
     cwd: &Path,
 ) -> impl Iterator<Item = Result<DirEntry, RexError>> + use<> {
@@ -31,8 +32,61 @@ pub(super) fn visible_entries(
         .build()
         .map(move |entry| {
             entry.map_err(|source| RexError::Walk {
-                path: root.clone(),
+                path: failing_path(&source).map_or_else(|| root.clone(), Path::to_path_buf),
                 source,
             })
         })
+}
+
+/// The path a walk error is about, when the error holds one.
+fn failing_path(error: &ignore::Error) -> Option<&Path> {
+    match error {
+        ignore::Error::WithPath { path, .. } => Some(path),
+        ignore::Error::Loop { child, .. } => Some(child),
+        ignore::Error::WithDepth { err, .. } | ignore::Error::WithLineNumber { err, .. } => {
+            failing_path(err)
+        }
+        ignore::Error::Partial(errors) => errors.iter().find_map(failing_path),
+        _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io;
+    use std::path::PathBuf;
+
+    use super::*;
+
+    fn permission_denied() -> ignore::Error {
+        ignore::Error::Io(io::Error::from(io::ErrorKind::PermissionDenied))
+    }
+
+    #[test]
+    fn failing_path_finds_the_path_through_depth_wrappers() {
+        let error = ignore::Error::WithDepth {
+            depth: 1,
+            err: Box::new(ignore::Error::WithPath {
+                path: PathBuf::from("./secret"),
+                err: Box::new(permission_denied()),
+            }),
+        };
+
+        assert_eq!(failing_path(&error), Some(Path::new("./secret")));
+    }
+
+    #[test]
+    fn failing_path_names_the_child_of_a_symlink_loop() {
+        let error = ignore::Error::Loop {
+            ancestor: PathBuf::from("./a"),
+            child: PathBuf::from("./a/b/back"),
+        };
+
+        assert_eq!(failing_path(&error), Some(Path::new("./a/b/back")));
+    }
+
+    #[test]
+    fn failing_path_is_none_when_the_error_carries_no_path() {
+        assert_eq!(failing_path(&permission_denied()), None);
+    }
 }
