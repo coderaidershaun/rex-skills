@@ -5,6 +5,7 @@
 use std::fs;
 use std::path::Path;
 
+use super::comments::comment_lines;
 use super::stdout::print_to_stdout;
 use super::walk::visible_entries;
 use crate::error::RexError;
@@ -45,11 +46,9 @@ fn render_report(cwd: &Path) -> Result<String, RexError> {
         })?;
         let shown_path = path.strip_prefix(cwd).unwrap_or(path).display();
 
-        for (index, line) in source.split(|&byte| byte == b'\n').enumerate() {
-            if has_flag(line) {
-                out.push_str(&format!("{shown_path}:{}\n", index + 1));
-                flag_count += 1;
-            }
+        for line in flag_lines(&source) {
+            out.push_str(&format!("{shown_path}:{line}\n"));
+            flag_count += 1;
         }
     }
 
@@ -57,20 +56,28 @@ fn render_report(cwd: &Path) -> Result<String, RexError> {
     Ok(out)
 }
 
-/// Tells if a line holds a `//` comment whose text starts with the flag word.
+/// The line number of each `SMELL` flag comment in `source`, counted from 1.
+/// A line is listed once, even when it holds more than one flag.
+fn flag_lines(source: &[u8]) -> Vec<usize> {
+    let mut lines: Vec<usize> = comment_lines(source)
+        .into_iter()
+        .filter(|comment| is_flag(comment.text))
+        .map(|comment| comment.line)
+        .collect();
+    lines.dedup();
+    lines
+}
+
+/// Tells if the text of a comment starts with the flag word.
 ///
 /// A comment that only talks about the word further in is not a flag, and
 /// neither is a longer word that starts the same way, such as `SMELLY`.
-fn has_flag(line: &[u8]) -> bool {
-    let Some(comment) = line_comment(line) else {
-        return false;
-    };
-
-    // Doc comments open with `///` or `//!`, so those marks are skipped along
-    // with the spaces.
+fn is_flag(comment: &[u8]) -> bool {
+    // Doc comments open with `///` or `//!`, and the lines of a block comment
+    // often open with `*`, so those marks are skipped along with the spaces.
     let text_start = comment
         .iter()
-        .position(|byte| !matches!(byte, b'/' | b'!') && !byte.is_ascii_whitespace())
+        .position(|byte| !matches!(byte, b'/' | b'!' | b'*') && !byte.is_ascii_whitespace())
         .unwrap_or(comment.len());
 
     comment[text_start..]
@@ -81,39 +88,16 @@ fn has_flag(line: &[u8]) -> bool {
         })
 }
 
-/// Finds the text of the `//` comment on a line, if the line has one. A `//`
-/// inside a string, such as a web address, does not start a comment.
-///
-/// Known limit: each line is read on its own. A line inside a string or a
-/// `/* */` comment that began on a line above is read as code, and a `"`
-/// written as a single character (`'"'`) is read as the start of a string.
-fn line_comment(line: &[u8]) -> Option<&[u8]> {
-    let mut is_in_string = false;
-    let mut index = 0;
-
-    while index < line.len() {
-        match line[index] {
-            // The character after a backslash is part of the string, even
-            // when it is a quote.
-            b'\\' if is_in_string => index += 1,
-            b'"' => is_in_string = !is_in_string,
-            b'/' if !is_in_string && line.get(index + 1) == Some(&b'/') => {
-                return Some(&line[index + 2..]);
-            }
-            _ => {}
-        }
-        index += 1;
-    }
-
-    None
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    fn is_flagged(source: &str) -> bool {
+        !flag_lines(source.as_bytes()).is_empty()
+    }
+
     #[test]
-    fn has_flag_accepts_a_comment_that_starts_with_the_flag_word() {
+    fn a_comment_that_starts_with_the_flag_word_is_a_flag() {
         let flagged = [
             "// SMELL: bad name",
             "    // SMELL: indented",
@@ -126,15 +110,17 @@ mod tests {
             "let url = \"http://example.com\"; // SMELL: fixed address",
             "let quote = \"say \\\"hi\\\"\"; // SMELL: escaped quotes before it",
             "// SMELL: windows line ending\r",
+            "/* SMELL: block comment */",
+            "/** SMELL: block doc comment */",
         ];
 
-        for line in flagged {
-            assert!(has_flag(line.as_bytes()), "expected a flag in: {line}");
+        for source in flagged {
+            assert!(is_flagged(source), "expected a flag in: {source}");
         }
     }
 
     #[test]
-    fn has_flag_rejects_a_line_with_no_flag_comment() {
+    fn text_that_is_not_a_flag_comment_is_ignored() {
         let clean = [
             "",
             "fn main() {}",
@@ -147,8 +133,23 @@ mod tests {
             "let fixture = \"// SMELL: inside a string\";",
         ];
 
-        for line in clean {
-            assert!(!has_flag(line.as_bytes()), "expected no flag in: {line}");
+        for source in clean {
+            assert!(!is_flagged(source), "expected no flag in: {source}");
         }
+    }
+
+    #[test]
+    fn a_line_with_two_flags_is_listed_once() {
+        assert_eq!(
+            flag_lines(b"/* SMELL: one */ /* SMELL: two */ // SMELL: three\n"),
+            vec![1]
+        );
+    }
+
+    #[test]
+    fn only_the_lines_of_a_block_comment_that_start_with_the_flag_word_count() {
+        let source = b"/*\n * SMELL: this line\n * mentions SMELL: in the middle\n */\n";
+
+        assert_eq!(flag_lines(source), vec![2]);
     }
 }
