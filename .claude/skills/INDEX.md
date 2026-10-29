@@ -2,9 +2,9 @@
 
 Catalog of the rex skill set in `.claude/skills/`. The `rex-code-lead` team lead reads this index to decide which skills to equip each subagent with. Skills here are plain files — an agent is "equipped" with a skill by being told to Read its `SKILL.md` (and any reference files) in full before starting work.
 
-## Canonical home and cross-tool discovery
+## Where these files live
 
-`.claude/skills/` is the canonical home of every skill. Claude Code reads it natively and Cursor loads it as a compatibility location. `rex skills --vendor codex` and `rex skills --vendor agents` copy the same files to `.codex/skills/` and `.agents/skills/` for other tools. The paths in these files all name `.claude/skills/`.
+`rex skills` installs these files into the skills folder of one agent tool. Every path in them names the folder this copy was installed into.
 
 ## Must-haves for every coding subagent
 

@@ -38,7 +38,8 @@ Claude Code reads `AGENTS.md` only when the project has no `CLAUDE.md`. If you h
 rex skills
 rex init                     # same command, alias
 
-# Install for another vendor
+# Install for another vendor. The skill text is rewritten to name that
+# folder, so a path such as .claude/skills/INDEX.md becomes .codex/skills/INDEX.md.
 rex skills --vendor codex    # -> ./.codex
 rex skills --vendor agents   # -> ./.agents
 
