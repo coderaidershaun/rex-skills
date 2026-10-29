@@ -62,6 +62,23 @@ fn warn_skipped(path: &Path) {
     );
 }
 
+/// Turns a permission failure on `path` into `None`, with a warning on stderr,
+/// so one unreadable file does not stop a command. Any other failure is an
+/// error that names `path`.
+pub(super) fn skip_if_denied<T>(path: &Path, result: io::Result<T>) -> Result<Option<T>, RexError> {
+    match result {
+        Ok(value) => Ok(Some(value)),
+        Err(source) if source.kind() == ErrorKind::PermissionDenied => {
+            warn_skipped(path);
+            Ok(None)
+        }
+        Err(source) => Err(RexError::Io {
+            path: path.to_path_buf(),
+            source,
+        }),
+    }
+}
+
 /// The path a walk error is about, when the error holds one.
 fn failing_path(error: &ignore::Error) -> Option<&Path> {
     match error {

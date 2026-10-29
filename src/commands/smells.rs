@@ -7,7 +7,7 @@ use std::path::Path;
 
 use super::comments::comment_lines;
 use super::stdout::print_to_stdout;
-use super::walk::visible_entries;
+use super::walk::{skip_if_denied, visible_entries};
 use crate::error::RexError;
 
 const FLAG_WORD: &[u8] = b"SMELL";
@@ -18,7 +18,8 @@ const FLAG_WORD: &[u8] = b"SMELL";
 /// # Errors
 /// - [`RexError::Walk`] if the directory walk fails (loop, glob). A path that
 ///   cannot be read is skipped with a warning on stderr.
-/// - [`RexError::Io`] if a Rust file cannot be read.
+/// - [`RexError::Io`] if a Rust file cannot be read for a reason other than its
+///   permissions. A file that is denied is skipped with a warning on stderr.
 /// - [`RexError::Stdout`] if the report cannot be written to stdout.
 pub fn run(cwd: &Path) -> Result<(), RexError> {
     print_to_stdout(&render_report(cwd)?)
@@ -40,10 +41,9 @@ fn render_report(cwd: &Path) -> Result<String, RexError> {
 
         // The file is read as bytes because text that is not valid UTF-8 must
         // not fail the whole command.
-        let source = fs::read(path).map_err(|source| RexError::Io {
-            path: path.to_path_buf(),
-            source,
-        })?;
+        let Some(source) = skip_if_denied(path, fs::read(path))? else {
+            continue;
+        };
         let shown_path = path.strip_prefix(cwd).unwrap_or(path).display();
 
         for line in flag_lines(&source) {
