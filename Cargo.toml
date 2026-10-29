@@ -29,3 +29,4 @@ thiserror = { version = "2.0.18", default-features = false }
 [dev-dependencies]
 assert_cmd = { version = "2.2.1", default-features = false }
 tempfile = { version = "3.27.0", default-features = false }
+yaml-rust2 = { version = "0.13.0", default-features = false }
