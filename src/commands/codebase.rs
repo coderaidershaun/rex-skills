@@ -6,6 +6,8 @@ use std::fs::{self, File};
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 
+use ignore::DirEntry;
+
 use super::stdout::{print_line_to_stdout, print_to_stdout};
 use super::walk::visible_entries;
 use crate::error::RexError;
@@ -94,17 +96,8 @@ fn render_tree(cwd: &Path, options: CodebaseOptions) -> Result<String, RexError>
         let entry = entry?;
 
         let depth = entry.depth();
-        if depth == 0 {
-            continue;
-        }
-
-        let name = entry.file_name().to_string_lossy();
-        let file_type = entry.file_type();
-        let is_dir = file_type.is_some_and(|ft| ft.is_dir());
-
-        // Self-exclusion at depth 1 only — a nested CODEBASE.md elsewhere
-        // is unusual but legitimate user content; don't silently drop it.
-        if !is_dir && depth == 1 && name == OUTPUT_FILENAME {
+        let is_dir = entry.file_type().is_some_and(|ft| ft.is_dir());
+        if depth == 0 || is_own_output(&entry, is_dir) {
             continue;
         }
 
@@ -114,36 +107,48 @@ fn render_tree(cwd: &Path, options: CodebaseOptions) -> Result<String, RexError>
 
         let indent = "  ".repeat(depth - 1);
         if is_dir {
-            let line = format!("{indent}{name}/\n");
+            let line = format!("{indent}{}/\n", entry.file_name().to_string_lossy());
             if options.is_rust_only {
                 pending_dirs.push((depth, line));
             } else {
                 out.push_str(&line);
             }
-            continue;
+        } else if !options.is_rust_only || is_rust_file(&entry) {
+            out.extend(pending_dirs.drain(..).map(|(_, line)| line));
+            out.push_str(&file_line(&entry, &indent, options)?);
         }
-
-        let is_rust_file = entry.path().extension().is_some_and(|ext| ext == "rs");
-        if options.is_rust_only && !is_rust_file {
-            continue;
-        }
-
-        for (_, line) in pending_dirs.drain(..) {
-            out.push_str(&line);
-        }
-
-        out.push_str(&format!("{indent}{name}"));
-        let is_regular_file = file_type.is_some_and(|ft| ft.is_file());
-        if options.has_context
-            && is_rust_file
-            && is_regular_file
-            && let Some(sentence) = first_doc_sentence(entry.path())?
-        {
-            out.push_str(&format!(" - {sentence}"));
-        }
-        out.push('\n');
     }
     Ok(out)
+}
+
+/// Tells if the entry is the `CODEBASE.md` that this command writes.
+///
+/// Only a file at depth 1 counts. A nested `CODEBASE.md` elsewhere is unusual
+/// but legitimate user content, so it must not be dropped silently.
+fn is_own_output(entry: &DirEntry, is_dir: bool) -> bool {
+    !is_dir && entry.depth() == 1 && entry.file_name() == OUTPUT_FILENAME
+}
+
+fn is_rust_file(entry: &DirEntry) -> bool {
+    entry.path().extension().is_some_and(|ext| ext == "rs")
+}
+
+/// One line of the tree for a file: its name and, with `--with-context`, the
+/// first sentence of the `//!` comment of a Rust file.
+fn file_line(entry: &DirEntry, indent: &str, options: CodebaseOptions) -> Result<String, RexError> {
+    let mut line = format!("{indent}{}", entry.file_name().to_string_lossy());
+
+    let is_regular_file = entry.file_type().is_some_and(|ft| ft.is_file());
+    if options.has_context
+        && is_rust_file(entry)
+        && is_regular_file
+        && let Some(sentence) = first_doc_sentence(entry.path())?
+    {
+        line = format!("{line} - {sentence}");
+    }
+
+    line.push('\n');
+    Ok(line)
 }
 
 /// Reads the first sentence of the `//!` block that opens a Rust file, if it
