@@ -4,7 +4,7 @@
 //! before they are committed or pushed.
 
 use std::fs;
-use std::io::ErrorKind;
+use std::io::{self, ErrorKind, Write};
 use std::path::Path;
 use std::process::Command;
 
@@ -21,6 +21,9 @@ pub(super) const INSTALL_COMMAND: &str =
 /// The first line of the config. Finding it means rex wrote the file, so a
 /// second run has nothing to say about it.
 const CONFIG_MARKER: &str = "# rex:pre-commit";
+
+/// The programs the hooks in the config run, besides pre-commit itself.
+const HOOK_TOOLS: [&str; 2] = ["gitleaks", "trivy"];
 
 const CONFIG: &str = "\
 # rex:pre-commit
@@ -105,6 +108,25 @@ pub(super) fn ensure_config(cwd: &Path) -> Result<ConfigWrite, RexError> {
     }
     fs::write(&path, CONFIG).map_err(|source| RexError::Io { path, source })?;
     Ok(ConfigWrite::Created)
+}
+
+/// Say on stderr which of the programs the config's hooks run are not on
+/// PATH. Without one of them, its hook fails on every commit.
+pub(super) fn warn_about_missing_hook_tools() {
+    for tool in HOOK_TOOLS.into_iter().filter(|tool| is_missing(tool)) {
+        // A warning that cannot be shown must not stop the install.
+        let _ = writeln!(
+            io::stderr().lock(),
+            "rex skills: warning: `{tool}` not found on PATH. Its hook in {CONFIG_FILENAME} fails every commit until it is installed"
+        );
+    }
+}
+
+fn is_missing(tool: &str) -> bool {
+    matches!(
+        Command::new(tool).arg("--version").output(),
+        Err(source) if source.kind() == ErrorKind::NotFound
+    )
 }
 
 /// Run the pre-commit tool so the config becomes real git hooks. Its own

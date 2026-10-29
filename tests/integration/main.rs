@@ -2,6 +2,7 @@
 mod broken_pipe;
 mod codebase;
 mod commands;
+mod hook_tools;
 mod skills_install;
 mod skills_update;
 mod smells;
