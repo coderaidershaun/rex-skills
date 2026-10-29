@@ -56,7 +56,8 @@ impl CodebaseOptions {
 /// to stdout. With `is_for_human`, write the tree to CODEBASE.md instead.
 ///
 /// # Errors
-/// - [`RexError::Walk`] if the directory walk fails (loop, glob, permissions).
+/// - [`RexError::Walk`] if the directory walk fails (loop, glob). A path that
+///   cannot be read is skipped with a warning on stderr.
 /// - [`RexError::Io`] if a Rust file cannot be read for its doc comment, or the
 ///   output file cannot be written.
 /// - [`RexError::Stdout`] if the tree cannot be written to stdout.
