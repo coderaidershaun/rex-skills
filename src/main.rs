@@ -3,8 +3,8 @@ use std::path::PathBuf;
 use anyhow::{Context, Result};
 use clap::{CommandFactory, Parser, Subcommand};
 
+use rex_skills::commands::catalog;
 use rex_skills::commands::codebase;
-use rex_skills::commands::commands;
 use rex_skills::commands::skills;
 use rex_skills::commands::smells;
 
@@ -50,7 +50,7 @@ fn main() -> Result<()> {
             smells::run(&cwd).context("rex smells failed")?;
         }
         Command::Commands => {
-            commands::run(&Cli::command()).context("rex commands failed")?;
+            catalog::run(&Cli::command()).context("rex commands failed")?;
         }
     }
 

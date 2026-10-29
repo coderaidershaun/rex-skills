@@ -1,8 +1,8 @@
-//! One module per `rex` subcommand, each exposing a `run` handler.
+//! One module per `rex` subcommand (`catalog` serves `rex commands`), each
+//! exposing a `run` handler.
 
+pub mod catalog;
 pub mod codebase;
-#[allow(clippy::module_inception)]
-pub mod commands;
 mod comments;
 pub mod skills;
 pub mod smells;
