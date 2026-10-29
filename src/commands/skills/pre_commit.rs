@@ -22,8 +22,9 @@ pub(super) const INSTALL_COMMAND: &str =
 /// second run has nothing to say about it.
 const CONFIG_MARKER: &str = "# rex:pre-commit";
 
-/// The programs the hooks in the config run, besides pre-commit itself.
-const HOOK_TOOLS: [&str; 2] = ["gitleaks", "trivy"];
+/// The programs the hooks in the config run, besides pre-commit itself, and
+/// the git action each hook runs at.
+const HOOK_TOOLS: [(&str, &str); 2] = [("gitleaks", "commit"), ("trivy", "push")];
 
 const CONFIG: &str = "\
 # rex:pre-commit
@@ -53,6 +54,7 @@ repos:
         entry: trivy fs --timeout 15m --quiet --skip-version-check --scanners secret,vuln,misconfig --severity HIGH,CRITICAL --exit-code 1 --skip-dirs target,node_modules,.claude,.codex,.agents --skip-files .env .
         language: system
         pass_filenames: false
+        stages: [pre-push]
       - id: cargo-fmt
         name: cargo fmt
         entry: cargo fmt --all -- --check
@@ -111,13 +113,13 @@ pub(super) fn ensure_config(cwd: &Path) -> Result<ConfigWrite, RexError> {
 }
 
 /// Say on stderr which of the programs the config's hooks run are not on
-/// PATH. Without one of them, its hook fails on every commit.
+/// PATH. Without one of them, its hook fails every time it runs.
 pub(super) fn warn_about_missing_hook_tools() {
-    for tool in HOOK_TOOLS.into_iter().filter(|tool| is_missing(tool)) {
+    for (tool, action) in HOOK_TOOLS.into_iter().filter(|(tool, _)| is_missing(tool)) {
         // A warning that cannot be shown must not stop the install.
         let _ = writeln!(
             io::stderr().lock(),
-            "rex skills: warning: `{tool}` not found on PATH. Its hook in {CONFIG_FILENAME} fails every commit until it is installed"
+            "rex skills: warning: `{tool}` not found on PATH. Its hook in {CONFIG_FILENAME} fails every {action} until it is installed"
         );
     }
 }
