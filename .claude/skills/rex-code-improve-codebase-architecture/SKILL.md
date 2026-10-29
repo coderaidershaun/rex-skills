@@ -207,7 +207,6 @@ Side effects. Do each one now, not later:
 
 Format for `CONTEXT.md` term: `**Term** — one-line meaning. _Avoid_: words not to use.`
 Format for ADR: title, context, decision, consequences. Max 20 lines.
-IF `rex-plan-discovery` skill has format files, THEN obey those.
 
 ## 4. Build
 
