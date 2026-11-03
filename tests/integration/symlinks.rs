@@ -133,3 +133,91 @@ fn project_with_install(project: &Path) -> std::path::PathBuf {
     fs::create_dir_all(project).expect("create project");
     project.to_path_buf()
 }
+
+// This test must never be deleted. The same hazard as a linked skill file:
+// a write through a link lands on whatever it points at, outside the project.
+// AGENTS.md is the one rex changes in place rather than only creating, so a
+// link here would edit a file the person never named.
+#[test]
+fn a_symlinked_agents_md_is_left_alone_and_its_target_untouched() {
+    let dir = tempdir().expect("create tempdir");
+    let project = dir.path().join("project");
+    fs::create_dir_all(&project).expect("create project");
+    let outside = dir.path().join("shared-notes.md");
+    fs::write(&outside, "precious").expect("write outside file");
+    symlink(&outside, project.join("AGENTS.md")).expect("create symlink");
+
+    let stderr = rex_skills(&project, &[]);
+
+    assert_eq!(
+        fs::read_to_string(&outside).expect("read outside file"),
+        "precious",
+        "rex must not write through the link"
+    );
+    assert!(
+        stderr.contains("rex skills: skipped ./AGENTS.md: it is a symbolic link"),
+        "got: {stderr}"
+    );
+}
+
+// This test must never be deleted. A link that points at nothing is the worst
+// case: the write creates a file at a path outside the project that nobody
+// asked for, and the person has no warning that it happened.
+#[test]
+fn a_dangling_link_never_creates_a_project_file_outside_the_project() {
+    let dir = tempdir().expect("create tempdir");
+    let project = dir.path().join("project");
+    fs::create_dir_all(&project).expect("create project");
+    let linked = [".gitignore", ".pre-commit-config.yaml"];
+    for name in linked {
+        symlink(dir.path().join(name), project.join(name)).expect("create dangling symlink");
+    }
+
+    let stderr = rex_skills(&project, &[]);
+
+    for name in linked {
+        assert!(
+            !dir.path().join(name).exists(),
+            "rex created {name} outside the project"
+        );
+        assert!(
+            stderr.contains(&format!(
+                "rex skills: skipped ./{name}: it is a symbolic link"
+            )),
+            "got: {stderr}"
+        );
+    }
+    assert!(
+        project.join(".claude/skills/INDEX.md").is_file(),
+        "the skill bundle must still be installed"
+    );
+}
+
+// Writing CODEBASE.md is all `rex codebase --for-human` does, so a link it
+// must not write through has to fail. Exiting 0 would tell a script the file
+// was written.
+#[test]
+fn codebase_for_human_fails_on_a_symlinked_output_and_writes_nothing_outside() {
+    let dir = tempdir().expect("create tempdir");
+    let project = dir.path().join("project");
+    fs::create_dir_all(&project).expect("create project");
+    let outside = dir.path().join("outside-codebase.md");
+    symlink(&outside, project.join("CODEBASE.md")).expect("create dangling symlink");
+
+    let assert = Command::cargo_bin("rex")
+        .expect("find rex binary")
+        .args(["codebase", "--for-human"])
+        .current_dir(&project)
+        .assert()
+        .failure();
+
+    let stderr = String::from_utf8(assert.get_output().stderr.clone()).expect("utf8 stderr");
+    assert!(
+        stderr.contains("./CODEBASE.md is a symbolic link; rex does not write through one"),
+        "got: {stderr}"
+    );
+    assert!(
+        !outside.exists(),
+        "rex created a file where the link points"
+    );
+}

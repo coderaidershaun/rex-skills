@@ -26,6 +26,9 @@ pub enum RexError {
         stderr: String,
     },
 
+    #[error("{} is a symbolic link; rex does not write through one", path.display())]
+    SymbolicLink { path: PathBuf },
+
     #[error("failed to write to stdout")]
     Stdout {
         #[source]
