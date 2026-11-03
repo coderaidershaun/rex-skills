@@ -2,7 +2,7 @@
 //! and the ones that differ when the caller asks for it.
 
 use std::fs;
-use std::io::{self, Write};
+use std::io::{self, ErrorKind, Write};
 use std::path::Path;
 
 use super::Vendor;
@@ -28,6 +28,10 @@ pub(super) struct InstallCounts {
 /// because the write would land on whatever the link points at. That covers the
 /// file itself and the folders of its own skill. The `skills` folder is
 /// followed, because people link a shared one on purpose.
+///
+/// A file that is there but cannot be read is left alone and named on stderr.
+/// Its contents are unknown, so rex can neither call it up to date nor replace
+/// it, and one such file must not stop the install.
 pub(super) fn install_bundle(
     target_root: &Path,
     vendor: Vendor,
@@ -40,8 +44,18 @@ pub(super) fn install_bundle(
         let dest = target_root.join(&rel_path);
         let contents = vendor.retarget(contents);
 
-        let is_present = dest.exists();
-        if is_present && fs::read(&dest).is_ok_and(|existing| existing == *contents) {
+        let existing = match fs::read(&dest) {
+            Ok(existing) => Some(existing),
+            Err(source) if source.kind() == ErrorKind::NotFound => None,
+            Err(source) => {
+                warn_unreadable(&dest, &source);
+                counts.skipped += 1;
+                continue;
+            }
+        };
+
+        let is_present = existing.is_some();
+        if existing.is_some_and(|bytes| bytes == *contents) {
             counts.skipped += 1;
         } else if is_present && !is_forced {
             counts.skipped += 1;
@@ -70,6 +84,15 @@ fn is_linked(dest: &Path, skills_dir: &Path) -> bool {
         .any(|path| {
             fs::symlink_metadata(path).is_ok_and(|metadata| metadata.file_type().is_symlink())
         })
+}
+
+fn warn_unreadable(path: &Path, source: &io::Error) {
+    // A warning that cannot be shown must not stop the install.
+    let _ = writeln!(
+        io::stderr().lock(),
+        "rex skills: skipped {}: {source}",
+        path.display()
+    );
 }
 
 fn warn_linked(path: &Path) {

@@ -138,3 +138,69 @@ fn codebase_with_context_lists_an_unreadable_rust_file_without_its_sentence() {
         "warning must name the skipped file, got: {stderr}"
     );
 }
+
+// This test must never be deleted. Everything `rex skills` does besides the
+// bundle — AGENTS.md, the .gitignore block, the pre-commit config and hooks —
+// runs after it, so one file rex cannot read must not end the whole install.
+#[test]
+fn skills_force_skips_an_unreadable_installed_file_and_finishes_the_install() {
+    let dir = tempdir().expect("create tempdir");
+    fs::create_dir_all(dir.path().join(".claude/skills")).expect("create skills dir");
+    let Some(_locked) = Locked::file(dir.path().join(".claude/skills/INDEX.md"), "stale\n") else {
+        return;
+    };
+
+    let assert = Command::cargo_bin("rex")
+        .expect("find rex binary")
+        .args(["skills", "--force"])
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    let output = assert.get_output();
+    let stdout = String::from_utf8(output.stdout.clone()).expect("utf8 stdout");
+    let stderr = String::from_utf8(output.stderr.clone()).expect("utf8 stderr");
+    assert!(
+        stderr.contains("rex skills: skipped ./.claude/skills/INDEX.md: Permission denied"),
+        "warning must name the skipped file, got: {stderr}"
+    );
+    assert!(
+        dir.path().join("AGENTS.md").is_file()
+            && dir.path().join(".pre-commit-config.yaml").is_file(),
+        "the rest of the install must still happen"
+    );
+    assert!(
+        dir.path()
+            .join(".claude/skills/rex-code-lead/SKILL.md")
+            .is_file(),
+        "the other skill files must still be installed"
+    );
+    assert!(
+        !stdout.contains("differs from this version"),
+        "a file rex cannot read is not known to differ, got: {stdout}"
+    );
+}
+
+// A file rex cannot read is left alone without `--force` too, and is not
+// counted among the files that differ, because its contents are unknown.
+#[test]
+fn skills_does_not_count_an_unreadable_installed_file_as_differing() {
+    let dir = tempdir().expect("create tempdir");
+    fs::create_dir_all(dir.path().join(".claude/skills")).expect("create skills dir");
+    let Some(_locked) = Locked::file(dir.path().join(".claude/skills/INDEX.md"), "stale\n") else {
+        return;
+    };
+
+    let assert = Command::cargo_bin("rex")
+        .expect("find rex binary")
+        .arg("skills")
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    let stdout = String::from_utf8(assert.get_output().stdout.clone()).expect("utf8 stdout");
+    assert!(
+        !stdout.contains("--force"),
+        "rex must not suggest --force for a file it cannot read, got: {stdout}"
+    );
+}
