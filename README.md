@@ -21,7 +21,7 @@ claude /rex-code-orchestrator please build me a house made out of rust.
 claude /rex-code-orchestrator please build every feature in FEATURES.md.
 ```
 
-Installs the `rex` binary (replaces any existing `rex` from rex-cli).
+Installs the `rex` binary (replaces any existing `rex` from rex-cli). Needs Rust 1.88 or newer.
 
 `rex skills` (and `rex init`) also put a "Codebase map" section and a "Code smells" section on top of `AGENTS.md`, creating the file if it is missing. The first tells an agent to run `rex codebase` before it searches the tree by hand. The second tells it to run `rex smells` to find each `SMELL:` flag left in the code. They are added once: a file that already has the `<!-- rex:codebase -->` line is not changed. To refresh them, delete both sections and that line, then run `rex skills` again.
 
