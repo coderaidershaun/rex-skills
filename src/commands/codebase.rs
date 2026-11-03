@@ -107,7 +107,10 @@ fn render_tree(cwd: &Path, options: CodebaseOptions) -> Result<String, RexError>
 
         let depth = entry.depth();
         let is_dir = entry.file_type().is_some_and(|ft| ft.is_dir());
-        if depth == 0 || is_own_output(&entry, is_dir) {
+        // Only the run that writes CODEBASE.md leaves it out, so that run's
+        // output reads the same every time. Hiding a file the project keeps
+        // would tell the reader it is not there.
+        if depth == 0 || (options.is_for_human && is_own_output(&entry, is_dir)) {
             continue;
         }
 
@@ -131,7 +134,7 @@ fn render_tree(cwd: &Path, options: CodebaseOptions) -> Result<String, RexError>
     Ok(out)
 }
 
-/// Tells if the entry is the `CODEBASE.md` that this command writes.
+/// Tells if the entry is the `CODEBASE.md` that `--for-human` writes.
 ///
 /// Only a file at depth 1 counts. A nested `CODEBASE.md` elsewhere is unusual
 /// but legitimate user content, so it must not be dropped silently.
