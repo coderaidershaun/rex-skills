@@ -9,7 +9,7 @@ repository = "https://github.com/coderaidershaun/rex-skills"
 readme = "README.md"
 keywords = ["skills", "agent", "claude", "cli"]
 categories = ["command-line-utilities", "development-tools"]
-include = [".claude/**/*", "src/**/*", "build.rs", "Cargo.toml", "README.md", "LICENSE"]
+include = [".claude/**/*", "src/**/*", "tests/**/*", "build.rs", "Cargo.toml", "README.md", "LICENSE"]
 
 [[bin]]
 name = "rex"
