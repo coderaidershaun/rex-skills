@@ -63,3 +63,30 @@ jobs:
         run: cargo --version
 
       - run: cargo check --locked --workspace --all-targets
+
+  package:
+    name: check the crate as it would be published
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install the stable toolchain
+        run: |
+          rustup update --no-self-update stable
+          rustup default stable
+
+      # `include` in Cargo.toml decides what ships, and a target whose source
+      # it leaves out is only a warning, so the warning has to be the failure.
+      - name: Package the crate
+        run: |
+          cargo package --locked 2>&1 | tee package.log
+          if grep -q '^warning' package.log; then
+            echo "::error::cargo package warned; the published crate would not hold what the repo does"
+            exit 1
+          fi
+
+      # The package shipped no tests until 0.1.10. Running them from inside it
+      # is what keeps them there and runnable for anyone who vendors the crate.
+      - name: Run the tests from inside the package
+        run: cd target/package/rex-skills-*/ && cargo test --locked --workspace
