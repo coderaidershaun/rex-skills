@@ -4,6 +4,7 @@
 pub mod catalog;
 pub mod codebase;
 mod comments;
+mod links;
 pub mod skills;
 pub mod smells;
 mod stdout;

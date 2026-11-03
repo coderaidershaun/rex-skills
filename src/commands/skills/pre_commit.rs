@@ -8,7 +8,7 @@ use std::io::{self, ErrorKind, Write};
 use std::path::Path;
 use std::process::Command;
 
-use super::file_change::contains_marker;
+use super::file_change::{ProjectWrite, contains_marker, write_unless_linked};
 use crate::error::RexError;
 
 pub(super) const CONFIG_FILENAME: &str = ".pre-commit-config.yaml";
@@ -84,6 +84,8 @@ pub(super) enum ConfigWrite {
     AlreadyWritten,
     /// Someone else's config is there. It is never replaced.
     SkippedExists,
+    /// The path is a symbolic link, so nothing was written through it.
+    SkippedLink,
 }
 
 /// The outcome of asking the pre-commit tool to install its hooks.
@@ -97,7 +99,8 @@ pub(super) enum HookInstall {
     SkippedNoTool,
 }
 
-/// Write `cwd/.pre-commit-config.yaml` unless a config is already there.
+/// Write `cwd/.pre-commit-config.yaml` unless a config is already there, or
+/// the path is a symbolic link; see [`write_unless_linked`].
 pub(super) fn ensure_config(cwd: &Path) -> Result<ConfigWrite, RexError> {
     let path = cwd.join(CONFIG_FILENAME);
     match fs::read(&path) {
@@ -108,8 +111,10 @@ pub(super) fn ensure_config(cwd: &Path) -> Result<ConfigWrite, RexError> {
         Err(source) if source.kind() == ErrorKind::NotFound => {}
         Err(source) => return Err(RexError::Io { path, source }),
     }
-    fs::write(&path, CONFIG).map_err(|source| RexError::Io { path, source })?;
-    Ok(ConfigWrite::Created)
+    match write_unless_linked(&path, CONFIG.as_bytes())? {
+        ProjectWrite::Written => Ok(ConfigWrite::Created),
+        ProjectWrite::SkippedLink => Ok(ConfigWrite::SkippedLink),
+    }
 }
 
 /// Say on stderr which of the programs the config's hooks run are not on

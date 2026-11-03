@@ -6,7 +6,7 @@ use std::io::ErrorKind;
 use std::path::Path;
 
 use super::Vendor;
-use super::file_change::{FileChange, contains_marker};
+use super::file_change::{FileChange, ProjectWrite, contains_marker, write_unless_linked};
 use crate::error::RexError;
 
 pub(super) const GITIGNORE_FILENAME: &str = ".gitignore";
@@ -37,6 +37,9 @@ impl Vendor {
 /// Make sure `cwd/.gitignore` has the vendor's block: create the file if it is
 /// missing, append the block after the existing lines if it is not there yet,
 /// and leave the file alone if it is.
+///
+/// A path that is a symbolic link is left alone as well; see
+/// [`write_unless_linked`].
 pub(super) fn ensure_ignore_block(cwd: &Path, vendor: Vendor) -> Result<FileChange, RexError> {
     let path = cwd.join(GITIGNORE_FILENAME);
 
@@ -62,6 +65,8 @@ pub(super) fn ensure_ignore_block(cwd: &Path, vendor: Vendor) -> Result<FileChan
         }
     };
 
-    fs::write(&path, contents).map_err(|source| RexError::Io { path, source })?;
-    Ok(change)
+    match write_unless_linked(&path, &contents)? {
+        ProjectWrite::Written => Ok(change),
+        ProjectWrite::SkippedLink => Ok(FileChange::Unchanged),
+    }
 }

@@ -62,6 +62,9 @@ pub struct SkillsOptions {
 /// added once and an existing file is never replaced, with or without
 /// `is_forced`.
 ///
+/// None of these files is written through a symbolic link. One that is a link
+/// is named on stderr and left alone, and the install carries on.
+///
 /// # Errors
 /// [`RexError::Io`] if a parent directory or file cannot be created or written,
 /// or if `AGENTS.md`, `.gitignore` or the pre-commit config cannot be read or
@@ -92,6 +95,8 @@ pub fn run(cwd: &Path, options: SkillsOptions) -> Result<(), RexError> {
         ConfigWrite::SkippedExists => {
             print_line_to_stdout(&format!("rex skills: {config} skipped (already exists)"))?;
         }
+        // The link was already named on stderr, so stdout stays quiet.
+        ConfigWrite::SkippedLink => {}
     }
 
     let install = pre_commit::INSTALL_COMMAND;

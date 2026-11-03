@@ -6,7 +6,7 @@ use std::fs;
 use std::io::ErrorKind;
 use std::path::Path;
 
-use super::file_change::{FileChange, contains_marker};
+use super::file_change::{FileChange, ProjectWrite, contains_marker, write_unless_linked};
 use crate::error::RexError;
 
 pub(super) const AGENTS_FILENAME: &str = "AGENTS.md";
@@ -39,6 +39,9 @@ Run this command to find each known problem that was flagged and left in the cod
 /// Make sure `cwd/AGENTS.md` has the rex sections: create the file if it is
 /// missing, put the sections above the existing text if it has none yet, and
 /// leave the file alone if it does.
+///
+/// A path that is a symbolic link is left alone as well; see
+/// [`write_unless_linked`].
 pub(super) fn ensure_rex_sections(cwd: &Path) -> Result<FileChange, RexError> {
     let path = cwd.join(AGENTS_FILENAME);
 
@@ -62,8 +65,8 @@ pub(super) fn ensure_rex_sections(cwd: &Path) -> Result<FileChange, RexError> {
         }
     };
 
-    // The file is written in place, not through a temp file and a rename, so
-    // an `AGENTS.md` that is a symlink stays a symlink.
-    fs::write(&path, contents).map_err(|source| RexError::Io { path, source })?;
-    Ok(change)
+    match write_unless_linked(&path, &contents)? {
+        ProjectWrite::Written => Ok(change),
+        ProjectWrite::SkippedLink => Ok(FileChange::Unchanged),
+    }
 }

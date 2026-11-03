@@ -7,6 +7,7 @@ use std::path::Path;
 
 use super::Vendor;
 use crate::bundle;
+use crate::commands::links::is_symlink;
 use crate::error::RexError;
 
 /// How many bundle files an install wrote, overwrote and left alone.
@@ -81,9 +82,7 @@ pub(super) fn install_bundle(
 fn is_linked(dest: &Path, skills_dir: &Path) -> bool {
     dest.ancestors()
         .take_while(|path| *path != skills_dir)
-        .any(|path| {
-            fs::symlink_metadata(path).is_ok_and(|metadata| metadata.file_type().is_symlink())
-        })
+        .any(is_symlink)
 }
 
 fn warn_unreadable(path: &Path, source: &io::Error) {

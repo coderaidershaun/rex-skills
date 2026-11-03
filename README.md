@@ -41,7 +41,9 @@ rex init                     # same command, alias
 # A skill file that already exists is never replaced, and the summary says how
 # many of them differ from this version. To update them, overwrite those files:
 rex skills --force           # only skill files are replaced; AGENTS.md, .gitignore and your pre-commit config keep their add-once rules.
-                             # A skill file or skill folder that is a symbolic link is never written through, so a link cannot send a write outside the project.
+                             # No file rex writes is ever written through a symbolic link, so a link cannot send a write outside the project.
+                             # That covers each skill file, a skill's own folder, and AGENTS.md, .gitignore and the pre-commit config.
+                             # A link is named on stderr and left alone, and the rest of the install carries on.
                              # The .claude/skills folder itself may be a link to a shared folder.
 
 # Install for another vendor. The skill text is rewritten to name that
@@ -56,7 +58,8 @@ rex codebase --rust-only                  # only .rs files and their directories
 rex codebase --with-context               # add the first `//!` sentence to each .rs line
 rex codebase --rust-only --with-context   # the Rust modules and what each is for
 
-# Write the tree to CODEBASE.md instead of printing it (works with the other flags)
+# Write the tree to CODEBASE.md instead of printing it (works with the other flags).
+# Writing the file is all this does, so a CODEBASE.md that is a symbolic link is an error, not a warning.
 rex codebase --for-human --rust-only --with-context
 
 # List every `SMELL:` flag comment in the Rust files as path:line, then the count
