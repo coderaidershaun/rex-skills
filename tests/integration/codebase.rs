@@ -211,3 +211,46 @@ fn codebase_lists_a_codebase_md_that_this_run_does_not_write() {
     let stdout = String::from_utf8(assert.get_output().stdout.clone()).expect("utf8 stdout");
     assert_eq!(stdout, "CODEBASE.md\nreadme.txt\n");
 }
+
+// A generated or minified `.rs` file can be one line megabytes long, and a
+// doc block can run for thousands of lines without a full stop. Neither may
+// decide how long a line of the tree is.
+#[test]
+fn codebase_with_context_caps_the_sentence_it_reads() {
+    let dir = tempdir().expect("create tempdir");
+    fs::write(
+        dir.path().join("one_long_line.rs"),
+        format!("//! {}\n", "x".repeat(200_000)),
+    )
+    .expect("write one_long_line.rs");
+    fs::write(
+        dir.path().join("many_doc_lines.rs"),
+        "//! no full stop here\n".repeat(2_000),
+    )
+    .expect("write many_doc_lines.rs");
+
+    let assert = Command::cargo_bin("rex")
+        .expect("find rex binary")
+        .args(["codebase", "--with-context"])
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    let stdout = String::from_utf8(assert.get_output().stdout.clone()).expect("utf8 stdout");
+    for line in stdout.lines() {
+        assert!(
+            line.len() < 5_000,
+            "a tree line grew to {} bytes: {}",
+            line.len(),
+            &line[..60]
+        );
+    }
+    assert!(
+        stdout.contains("one_long_line.rs - xxx"),
+        "got: {stdout:.80}"
+    );
+    assert!(
+        stdout.contains("many_doc_lines.rs - no full stop here no full stop"),
+        "got: {stdout:.80}"
+    );
+}

@@ -3,7 +3,7 @@
 //! walks.
 
 use std::fs::{self, File};
-use std::io::{BufRead, BufReader};
+use std::io::{self, BufRead, BufReader, Read};
 use std::path::Path;
 
 use ignore::DirEntry;
@@ -16,6 +16,12 @@ use crate::error::RexError;
 const OUTPUT_FILENAME: &str = "CODEBASE.md";
 
 const LAST_DOC_START_LINE: usize = 5;
+
+/// How much of a line, and of the doc block as a whole, is read while looking
+/// for the first sentence. A `.rs` file can be one generated line megabytes
+/// long, and the sentence goes on one line of a tree, so reading further
+/// would only cost memory.
+const MAX_DOC_BYTES: usize = 4096;
 
 const WITH_CONTEXT_FLAG: &str = "with-context";
 const RUST_ONLY_FLAG: &str = "rust-only";
@@ -169,7 +175,8 @@ fn file_line(entry: &DirEntry, indent: &str, options: CodebaseOptions) -> Result
 ///
 /// The block must start within the first few lines. The sentence ends at the
 /// first full stop that is followed by whitespace or the end of a line, or at
-/// an empty `//!` line once text has started.
+/// an empty `//!` line once text has started. It also ends at
+/// [`MAX_DOC_BYTES`], so no file can make this line of the tree grow.
 fn first_doc_sentence(path: &Path) -> Result<Option<String>, RexError> {
     let io_error = |source| RexError::Io {
         path: path.to_path_buf(),
@@ -187,10 +194,9 @@ fn first_doc_sentence(path: &Path) -> Result<Option<String>, RexError> {
 
     // Lines are read as bytes because `lines()` returns an error on text that
     // is not valid UTF-8, and one such file must not fail the whole command.
-    while reader.read_until(b'\n', &mut raw_line).map_err(io_error)? > 0 {
+    while read_capped_line(&mut reader, &mut raw_line).map_err(io_error)? {
         line_number += 1;
-        let line = String::from_utf8_lossy(&raw_line).into_owned();
-        raw_line.clear();
+        let line = String::from_utf8_lossy(&raw_line);
 
         let Some(doc) = line.strip_prefix("//!") else {
             if is_in_block || line_number >= LAST_DOC_START_LINE {
@@ -217,9 +223,31 @@ fn first_doc_sentence(path: &Path) -> Result<Option<String>, RexError> {
             text.truncate(end);
             break;
         }
+        if text.len() >= MAX_DOC_BYTES {
+            break;
+        }
     }
 
     Ok(Some(text).filter(|sentence| !sentence.is_empty()))
+}
+
+/// Reads the next line of `reader` into `raw_line`, up to [`MAX_DOC_BYTES`].
+/// What is left of a longer line is dropped, so the next read starts where a
+/// line does. False at the end of the file.
+fn read_capped_line<R: BufRead>(reader: &mut R, raw_line: &mut Vec<u8>) -> io::Result<bool> {
+    raw_line.clear();
+    let mut capped = reader.by_ref().take(MAX_DOC_BYTES as u64);
+    let read = capped.read_until(b'\n', raw_line)?;
+
+    if read == 0 {
+        return Ok(false);
+    }
+
+    let is_whole_line = raw_line.ends_with(b"\n") || read < MAX_DOC_BYTES;
+    if !is_whole_line {
+        reader.skip_until(b'\n')?;
+    }
+    Ok(true)
 }
 
 /// Finds the byte offset just past the first full stop that is followed by
@@ -230,4 +258,51 @@ fn sentence_end(text: &str) -> Option<usize> {
         .filter(|&(_, c)| c == '.')
         .map(|(index, _)| index + 1)
         .find(|&end| text[end..].chars().next().is_none_or(char::is_whitespace))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn read_line(reader: &mut &[u8], raw_line: &mut Vec<u8>) -> bool {
+        read_capped_line(reader, raw_line).expect("reading a slice cannot fail")
+    }
+
+    #[test]
+    fn a_line_longer_than_the_cap_is_cut_and_the_next_read_starts_on_a_line() {
+        let source = format!("{}\nsecond\n", "x".repeat(MAX_DOC_BYTES * 3));
+        let mut reader = source.as_bytes();
+        let mut raw_line = Vec::new();
+
+        assert!(read_line(&mut reader, &mut raw_line));
+        assert_eq!(raw_line.len(), MAX_DOC_BYTES);
+
+        assert!(read_line(&mut reader, &mut raw_line));
+        assert_eq!(raw_line, b"second\n");
+    }
+
+    // A line that fills the cap exactly is already whole. Skipping to the
+    // next newline here would drop the line after it.
+    #[test]
+    fn a_line_that_ends_on_the_cap_keeps_the_line_after_it() {
+        let source = format!("{}\nsecond\n", "x".repeat(MAX_DOC_BYTES - 1));
+        let mut reader = source.as_bytes();
+        let mut raw_line = Vec::new();
+
+        assert!(read_line(&mut reader, &mut raw_line));
+        assert_eq!(raw_line.len(), MAX_DOC_BYTES);
+
+        assert!(read_line(&mut reader, &mut raw_line));
+        assert_eq!(raw_line, b"second\n");
+    }
+
+    #[test]
+    fn the_last_line_of_a_file_that_ends_without_a_newline_is_read_once() {
+        let mut reader = &b"only"[..];
+        let mut raw_line = Vec::new();
+
+        assert!(read_line(&mut reader, &mut raw_line));
+        assert_eq!(raw_line, b"only");
+        assert!(!read_line(&mut reader, &mut raw_line));
+    }
 }
