@@ -42,3 +42,24 @@ jobs:
       - run: cargo clippy --locked --workspace --all-targets -- -D warnings
 
       - run: cargo test --locked --workspace
+
+  msrv:
+    name: build on the oldest Rust the crate claims
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # Cargo.toml is the only place the version is written, so this job
+      # cannot drift from what the crate promises.
+      - name: Install the version Cargo.toml declares
+        run: |
+          msrv="$(cargo metadata --format-version 1 --no-deps | jq -r '.packages[0].rust_version')"
+          echo "Cargo.toml declares rust-version $msrv"
+          rustup toolchain install --no-self-update --profile minimal "$msrv"
+          rustup default "$msrv"
+
+      - name: Report the toolchain
+        run: cargo --version
+
+      - run: cargo check --locked --workspace --all-targets

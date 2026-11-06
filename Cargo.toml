@@ -2,6 +2,9 @@
 name = "rex-skills"
 version = "0.1.10"
 edition = "2024"
+# Both `ignore` and `globset` ask for 1.88, and so do the `let` chains this
+# crate uses, which became stable in edition 2024 in that same version.
+rust-version = "1.88"
 authors = ["Shaun McDonogh"]
 description = "Install the rex agent skill bundle into any project, plus a codebase tree command for agents"
 license = "MIT"
