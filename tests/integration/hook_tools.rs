@@ -10,15 +10,20 @@ fn bin_with(dir: &Path, tools: &[&str]) -> std::path::PathBuf {
     let bin = dir.join("fakebin");
     fs::create_dir_all(&bin).expect("create fakebin");
     for tool in tools {
-        let path = bin.join(tool);
-        fs::write(&path, "#!/bin/sh\nexit 0\n").expect("write fake tool");
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).expect("chmod");
-        }
+        write_tool(&bin, tool, "#!/bin/sh\nexit 0\n");
     }
     bin
+}
+
+/// Writes one runnable script named `tool` into `bin`.
+fn write_tool(bin: &Path, tool: &str, body: &str) {
+    let path = bin.join(tool);
+    fs::write(&path, body).expect("write fake tool");
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).expect("chmod");
+    }
 }
 
 fn stderr_of_install(dir: &Path, path_env: &Path) -> String {
@@ -82,4 +87,24 @@ fn a_config_the_user_wrote_gets_no_tool_warning() {
         stderr, "",
         "rex does not know which tools the user's hooks need"
     );
+}
+
+// Looking for a tool must not run it. A name on PATH can point at anything,
+// and rex only needs to know that something is there.
+#[test]
+fn a_tool_on_path_is_not_run_while_rex_looks_for_it() {
+    let dir = tempdir().expect("create tempdir");
+    let bin = bin_with(dir.path(), &[]);
+    // A shell redirection, not `touch`, because PATH here holds nothing but
+    // this script. The file lands in the project the script is run from.
+    write_tool(&bin, "gitleaks", "#!/bin/sh\n: > ran\nexit 0\n");
+
+    let stderr = stderr_of_install(dir.path(), &bin);
+
+    assert!(
+        !dir.path().join("ran").exists(),
+        "rex started gitleaks to find out whether it is installed"
+    );
+    assert!(!stderr.contains("gitleaks"), "got: {stderr}");
+    assert!(stderr.contains("`trivy` not found"), "got: {stderr}");
 }
