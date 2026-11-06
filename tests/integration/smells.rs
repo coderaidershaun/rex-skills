@@ -97,3 +97,25 @@ fn accent() -> char { 'é' } // SMELL: after a multi-byte character
         "a.rs:1\na.rs:2\na.rs:3\na.rs:5\na.rs:7\na.rs:9\na.rs:10\nCode smells: 7\n"
     );
 }
+
+// macOS and Windows open `upper.RS` when the compiler asks for `upper.rs`, so
+// a file named that way is Rust source and its flags belong in the list.
+#[test]
+fn smells_reads_a_rust_file_whose_extension_is_upper_case() {
+    let dir = tempdir().expect("create tempdir");
+    fs::write(
+        dir.path().join("upper.RS"),
+        "// SMELL: an upper case extension\n",
+    )
+    .expect("write upper.RS");
+
+    let assert = Command::cargo_bin("rex")
+        .expect("find rex binary")
+        .arg("smells")
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    let stdout = String::from_utf8(assert.get_output().stdout.clone()).expect("utf8 stdout");
+    assert_eq!(stdout, "upper.RS:1\nCode smells: 1\n");
+}

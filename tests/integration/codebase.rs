@@ -254,3 +254,20 @@ fn codebase_with_context_caps_the_sentence_it_reads() {
         "got: {stdout:.80}"
     );
 }
+
+#[test]
+fn codebase_rust_only_lists_a_file_whose_extension_is_upper_case() {
+    let dir = tempdir().expect("create tempdir");
+    fs::write(dir.path().join("upper.RS"), b"fn main() {}\n").expect("write upper.RS");
+    fs::write(dir.path().join("notes.md"), b"notes\n").expect("write notes.md");
+
+    let assert = Command::cargo_bin("rex")
+        .expect("find rex binary")
+        .args(["codebase", "--rust-only"])
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    let stdout = String::from_utf8(assert.get_output().stdout.clone()).expect("utf8 stdout");
+    assert_eq!(stdout, "upper.RS\n");
+}
