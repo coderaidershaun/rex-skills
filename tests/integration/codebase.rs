@@ -271,3 +271,45 @@ fn codebase_rust_only_lists_a_file_whose_extension_is_upper_case() {
     let stdout = String::from_utf8(assert.get_output().stdout.clone()).expect("utf8 stdout");
     assert_eq!(stdout, "upper.RS\n");
 }
+
+// A repo decides the text of its own doc comments and `--with-context` puts
+// that text on a line of the tree, so an escape sequence in one would reach
+// the terminal of whoever ran rex.
+#[test]
+fn codebase_with_context_replaces_a_control_character_in_a_doc_comment() {
+    let dir = tempdir().expect("create tempdir");
+    fs::write(
+        dir.path().join("escape.rs"),
+        "//! Clears \u{1b}[2J the screen.\nfn main() {}\n",
+    )
+    .expect("write escape.rs");
+
+    let assert = Command::cargo_bin("rex")
+        .expect("find rex binary")
+        .args(["codebase", "--with-context"])
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    let stdout = String::from_utf8(assert.get_output().stdout.clone()).expect("utf8 stdout");
+    assert_eq!(stdout, "escape.rs - Clears ?[2J the screen.\n");
+}
+
+// One entry of the tree is one line, and a file name can hold a newline, so
+// without the newline replaced one file reads as two.
+#[cfg(unix)]
+#[test]
+fn codebase_prints_a_name_that_holds_a_newline_on_one_line() {
+    let dir = tempdir().expect("create tempdir");
+    fs::write(dir.path().join("two\nlines.rs"), b"fn main() {}\n").expect("write fixture");
+
+    let assert = Command::cargo_bin("rex")
+        .expect("find rex binary")
+        .arg("codebase")
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    let stdout = String::from_utf8(assert.get_output().stdout.clone()).expect("utf8 stdout");
+    assert_eq!(stdout, "two?lines.rs\n");
+}
