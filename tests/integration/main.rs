@@ -1,3 +1,6 @@
+//! Each module here runs the `rex` binary the way a user does, in a
+//! temporary directory.
+
 #[cfg(unix)]
 mod broken_pipe;
 mod codebase;

@@ -1,3 +1,7 @@
+//! The `rex` command line tool. Each command's work is done by the
+//! `rex_skills` library, so the tests can call it without starting a
+//! process.
+
 use std::path::PathBuf;
 
 use anyhow::{Context, Result};

@@ -22,8 +22,11 @@ use pre_commit::{ConfigWrite, HookInstall};
 /// same content tree under its own dot-directory.
 #[derive(clap::ValueEnum, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Vendor {
+    /// Claude Code, which reads `.claude/skills/`.
     Claude,
+    /// Codex, which reads `.codex/skills/`.
     Codex,
+    /// The tool-neutral `.agents/skills/`, for anything that reads it.
     Agents,
 }
 
