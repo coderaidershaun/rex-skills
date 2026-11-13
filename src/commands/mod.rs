@@ -5,6 +5,7 @@ pub mod catalog;
 pub mod codebase;
 mod comments;
 mod links;
+mod printable;
 mod rust_file;
 pub mod skills;
 pub mod smells;

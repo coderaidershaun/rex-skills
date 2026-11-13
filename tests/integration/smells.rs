@@ -119,3 +119,22 @@ fn smells_reads_a_rust_file_whose_extension_is_upper_case() {
     let stdout = String::from_utf8(assert.get_output().stdout.clone()).expect("utf8 stdout");
     assert_eq!(stdout, "upper.RS:1\nCode smells: 1\n");
 }
+
+// Each flag is one `path:line` pair on its own line. A file name that holds a
+// newline would break the pair in two and name a file that is not there.
+#[cfg(unix)]
+#[test]
+fn smells_prints_a_path_that_holds_a_newline_on_one_line() {
+    let dir = tempdir().expect("create tempdir");
+    fs::write(dir.path().join("two\nlines.rs"), b"// SMELL: here\n").expect("write fixture");
+
+    let assert = Command::cargo_bin("rex")
+        .expect("find rex binary")
+        .arg("smells")
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    let stdout = String::from_utf8(assert.get_output().stdout.clone()).expect("utf8 stdout");
+    assert_eq!(stdout, "two?lines.rs:1\nCode smells: 1\n");
+}

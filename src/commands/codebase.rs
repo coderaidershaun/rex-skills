@@ -9,6 +9,7 @@ use std::path::Path;
 use ignore::DirEntry;
 
 use super::links::is_symlink;
+use super::printable::printable;
 use super::rust_file::is_rust_file;
 use super::stdout::{print_line_to_stdout, print_to_stdout};
 use super::walk::{skip_if_denied, visible_entries};
@@ -127,7 +128,10 @@ fn render_tree(cwd: &Path, options: CodebaseOptions) -> Result<String, RexError>
 
         let indent = "  ".repeat(depth - 1);
         if is_dir {
-            let line = format!("{indent}{}/\n", entry.file_name().to_string_lossy());
+            let line = format!(
+                "{indent}{}/\n",
+                printable(&entry.file_name().to_string_lossy())
+            );
             if options.is_rust_only {
                 pending_dirs.push((depth, line));
             } else {
@@ -152,7 +156,10 @@ fn is_own_output(entry: &DirEntry, is_dir: bool) -> bool {
 /// One line of the tree for a file: its name and, with `--with-context`, the
 /// first sentence of the `//!` comment of a Rust file.
 fn file_line(entry: &DirEntry, indent: &str, options: CodebaseOptions) -> Result<String, RexError> {
-    let mut line = format!("{indent}{}", entry.file_name().to_string_lossy());
+    let mut line = format!(
+        "{indent}{}",
+        printable(&entry.file_name().to_string_lossy())
+    );
 
     let is_regular_file = entry.file_type().is_some_and(|ft| ft.is_file());
     if options.has_context
@@ -160,7 +167,7 @@ fn file_line(entry: &DirEntry, indent: &str, options: CodebaseOptions) -> Result
         && is_regular_file
         && let Some(sentence) = first_doc_sentence(entry.path())?
     {
-        line = format!("{line} - {sentence}");
+        line = format!("{line} - {}", printable(&sentence));
     }
 
     line.push('\n');

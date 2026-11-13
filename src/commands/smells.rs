@@ -6,6 +6,7 @@ use std::fs;
 use std::path::Path;
 
 use super::comments::comment_lines;
+use super::printable::printable;
 use super::rust_file::is_rust_file;
 use super::stdout::print_to_stdout;
 use super::walk::{skip_if_denied, visible_entries};
@@ -44,7 +45,8 @@ fn render_report(cwd: &Path) -> Result<String, RexError> {
         let Some(source) = skip_if_denied(path, fs::read(path))? else {
             continue;
         };
-        let shown_path = path.strip_prefix(cwd).unwrap_or(path).display();
+        let shown = path.strip_prefix(cwd).unwrap_or(path).to_string_lossy();
+        let shown_path = printable(&shown);
 
         for line in flag_lines(&source) {
             out.push_str(&format!("{shown_path}:{line}\n"));
