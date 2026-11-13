@@ -91,7 +91,7 @@ fn codebase_prints_tree_to_stdout_and_writes_no_file() {
 #[test]
 fn codebase_with_context_appends_first_doc_sentence() {
     let dir = tempdir().expect("create tempdir");
-    let fixtures: [(&str, &str); 7] = [
+    let fixtures: [(&str, &str); 9] = [
         (
             "a_sentence_over_three_lines.rs",
             "//! Reads `a.md` and\n//! writes it back\n//! to disk. Then it stops.\nfn main() {}\n",
@@ -114,6 +114,14 @@ fn codebase_with_context_appends_first_doc_sentence() {
             "fn a() {}\nfn b() {}\nfn c() {}\nfn d() {}\nfn e() {}\n//! Too late.\n",
         ),
         ("g_not_rust.md", "//! Not a module.\n"),
+        (
+            "h_question_ends_it.rs",
+            "//! Is this a sentence? It is, and this part is dropped.\n",
+        ),
+        (
+            "i_exclamation_ends_it.rs",
+            "//! Watch out! This part is dropped as well.\n",
+        ),
     ];
     for (name, contents) in fixtures {
         fs::write(dir.path().join(name), contents).expect("write fixture");
@@ -134,7 +142,9 @@ fn codebase_with_context_appends_first_doc_sentence() {
         d_no_full_stop.rs - Runs until the doc lines end\n\
         e_no_doc.rs\n\
         f_doc_starts_on_line_six.rs\n\
-        g_not_rust.md\n";
+        g_not_rust.md\n\
+        h_question_ends_it.rs - Is this a sentence?\n\
+        i_exclamation_ends_it.rs - Watch out!\n";
     assert_eq!(stdout, expected);
 }
 

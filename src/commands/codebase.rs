@@ -247,12 +247,12 @@ fn read_capped_line<R: BufRead>(reader: &mut R, raw_line: &mut Vec<u8>) -> io::R
     Ok(true)
 }
 
-/// Finds the byte offset just past the first full stop that is followed by
-/// whitespace or the end of the text. A full stop inside a word, such as
-/// `CODEBASE.md`, does not count.
+/// Finds the byte offset just past the first full stop, question mark or
+/// exclamation mark that is followed by whitespace or the end of the text. One
+/// of those marks inside a word, such as `CODEBASE.md`, does not count.
 fn sentence_end(text: &str) -> Option<usize> {
     text.char_indices()
-        .filter(|&(_, c)| c == '.')
+        .filter(|&(_, c)| matches!(c, '.' | '?' | '!'))
         .map(|(index, _)| index + 1)
         .find(|&end| text[end..].chars().next().is_none_or(char::is_whitespace))
 }
@@ -291,6 +291,20 @@ mod tests {
 
         assert!(read_line(&mut reader, &mut raw_line));
         assert_eq!(raw_line, b"second\n");
+    }
+
+    #[test]
+    fn a_question_mark_or_an_exclamation_mark_ends_a_sentence() {
+        assert_eq!(sentence_end("Why? Because."), Some(4));
+        assert_eq!(sentence_end("Stop! Now."), Some(5));
+    }
+
+    // A mark that is not the end of a sentence is one inside a word. Two
+    // together are one end, so `What?!` is not cut between them.
+    #[test]
+    fn a_mark_inside_a_word_does_not_end_a_sentence() {
+        assert_eq!(sentence_end("CODEBASE.md is the file."), Some(24));
+        assert_eq!(sentence_end("What?! Then more."), Some(6));
     }
 
     #[test]
