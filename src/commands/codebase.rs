@@ -194,6 +194,14 @@ fn first_doc_sentence(path: &Path) -> Result<Option<String>, RexError> {
     while read_capped_line(&mut reader, &mut raw_line).map_err(io_error)? {
         line_number += 1;
         let line = String::from_utf8_lossy(&raw_line);
+        // An editor can write a byte order mark before the first line of a
+        // file. Rustc reads the file behind it, so the `//!` comment counts,
+        // and this is the only line it can open.
+        let line = if line_number == 1 {
+            line.strip_prefix('\u{feff}').unwrap_or(&line)
+        } else {
+            &line
+        };
 
         let Some(doc) = line.strip_prefix("//!") else {
             if is_in_block || line_number >= LAST_DOC_START_LINE {

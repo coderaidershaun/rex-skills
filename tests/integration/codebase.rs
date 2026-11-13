@@ -271,3 +271,25 @@ fn codebase_rust_only_lists_a_file_whose_extension_is_upper_case() {
     let stdout = String::from_utf8(assert.get_output().stdout.clone()).expect("utf8 stdout");
     assert_eq!(stdout, "upper.RS\n");
 }
+
+// An editor can write a byte order mark before the first line. Rustc reads
+// the file behind it, so its `//!` comment belongs on the tree like any other.
+#[test]
+fn codebase_with_context_reads_a_doc_comment_behind_a_byte_order_mark() {
+    let dir = tempdir().expect("create tempdir");
+    fs::write(
+        dir.path().join("bom.rs"),
+        "\u{feff}//! Has a byte order mark.\nfn main() {}\n",
+    )
+    .expect("write bom.rs");
+
+    let assert = Command::cargo_bin("rex")
+        .expect("find rex binary")
+        .args(["codebase", "--with-context"])
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    let stdout = String::from_utf8(assert.get_output().stdout.clone()).expect("utf8 stdout");
+    assert_eq!(stdout, "bom.rs - Has a byte order mark.\n");
+}
